@@ -1,0 +1,157 @@
+﻿import torch
+from transformers import AutoModelForVision2Seq, AutoProcessor, BitsAndBytesConfig
+from peft import PeftModel
+from PIL import Image
+from qwen_vl_utils import process_vision_info
+import logging
+from typing import Optional
+from pathlib import Path
+import os
+
+logger = logging.getLogger(__name__)
+
+class EuphorieVisionModel:
+    '''Enhanced vision model for Euphorie - trained on 50K+ quality captions'''
+    
+    def __init__(self, model_path: str = None):
+        self.model = None
+        self.processor = None
+        self.loaded = False
+        
+        # Fix the path - use absolute path from current file location
+        if model_path is None:
+            current_dir = Path(__file__).parent.parent  # Go up to ai-service/
+            self.model_path = str(current_dir / 'models' / 'vision_production')
+        else:
+            self.model_path = model_path
+            
+        logger.info(f"Model path set to: {self.model_path}")
+        
+    def load_model(self):
+        '''Load the enhanced Euphorie vision model'''
+        if self.loaded:
+            logger.info("Model already loaded")
+            return
+        
+        logger.info("Loading Euphorie Enhanced Vision Model...")
+        logger.info(f"Loading from: {self.model_path}")
+        
+        # Check if path exists
+        if not Path(self.model_path).exists():
+            raise FileNotFoundError(f"Model directory not found: {self.model_path}")
+        
+        try:
+            bnb_config = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_quant_type='nf4',
+                bnb_4bit_compute_dtype=torch.bfloat16
+            )
+            
+            self.processor = AutoProcessor.from_pretrained(
+                'Qwen/Qwen2.5-VL-7B-Instruct',
+                trust_remote_code=True
+            )
+            
+            base_model = AutoModelForVision2Seq.from_pretrained(
+                'Qwen/Qwen2.5-VL-7B-Instruct',
+                quantization_config=bnb_config,
+                device_map='auto',
+                trust_remote_code=True
+            )
+            
+            # Load your enhanced model
+            logger.info(f"Loading LoRA weights from {self.model_path}")
+            self.model = PeftModel.from_pretrained(base_model, self.model_path)
+            self.model.eval()
+            self.loaded = True
+            
+            logger.info("✅ Euphorie Vision Model loaded successfully!")
+            logger.info(f"   Model: Enhanced v2.0 (50K quality captions)")
+            
+        except Exception as e:
+            logger.error(f"Failed to load model: {e}")
+            raise
+    
+    def analyze_image(
+        self, 
+        image: Image.Image, 
+        prompt: str = "Describe this image in detail."
+    ) -> str:
+        '''
+        Analyze an image and return description
+        
+        Args:
+            image: PIL Image
+            prompt: Custom prompt for analysis
+            
+        Returns:
+            String description of the image
+        '''
+        if not self.loaded:
+            self.load_model()
+        
+        try:
+            messages = [{
+                'role': 'user',
+                'content': [
+                    {'type': 'image', 'image': image},
+                    {'type': 'text', 'text': prompt}
+                ]
+            }]
+            
+            text = self.processor.apply_chat_template(
+                messages, 
+                tokenize=False, 
+                add_generation_prompt=True
+            )
+            
+            image_inputs, _ = process_vision_info(messages)
+            inputs = self.processor(
+                text=[text], 
+                images=image_inputs, 
+                return_tensors='pt'
+            ).to('cuda')
+            
+            with torch.no_grad():
+                output = self.model.generate(
+                    **inputs, 
+                    max_new_tokens=200,
+                    temperature=0.7
+                )
+            
+            response = self.processor.batch_decode(
+                output, 
+                skip_special_tokens=True
+            )[0]
+            
+            if 'assistant' in response:
+                response = response.split('assistant')[-1].strip()
+            
+            return response
+            
+        except Exception as e:
+            logger.error(f"Error analyzing image: {e}")
+            raise
+    
+    def analyze_context(self, image: Image.Image) -> dict:
+        '''
+        Provide contextual analysis for Euphorie AI agents
+        Returns structured data about the image
+        '''
+        description = self.analyze_image(image, "Describe this image in detail.")
+        
+        # Get specific insights
+        objects = self.analyze_image(image, "What objects do you see?")
+        text_content = self.analyze_image(image, "Is there any text visible? What does it say?")
+        activity = self.analyze_image(image, "What activity or action is happening?")
+        
+        return {
+            "description": description,
+            "objects": objects,
+            "text_content": text_content,
+            "activity": activity,
+            "model_version": "euphorie-v2.0"
+        }
+
+# Global instance
+vision_model = EuphorieVisionModel()

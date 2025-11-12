@@ -1,0 +1,2295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Euphorie AI</title>
+    
+    <!-- Favicon Support -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="manifest" href="/site.webmanifest">
+    <meta name="theme-color" content="#8b5cf6">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #000;
+            color: white;
+            overflow: hidden;
+            height: 100vh;
+            height: 100dvh;
+            width: 100vw;
+            position: fixed;
+            touch-action: none;
+        }
+
+        /* Desktop News Feed Styles */
+        @media (min-width: 769px) {
+            .news-feed-container {
+                position: fixed;
+                right: -400px;
+                top: 0;
+                width: 400px;
+                height: 100vh;
+                background: rgba(0, 0, 0, 0.7);
+                backdrop-filter: blur(20px);
+                -webkit-backdrop-filter: blur(20px);
+                border-left: 1px solid rgba(139, 92, 246, 0.3);
+                transition: right 0.3s ease;
+                z-index: 1000;
+                display: flex;
+                flex-direction: column;
+                opacity: 0;
+                visibility: hidden;
+            }
+
+            .news-feed-container.enabled {
+                visibility: visible;
+                opacity: 1;
+            }
+
+            .news-feed-container.open {
+                right: 0;
+            }
+
+            .main-container.news-open {
+                margin-right: 400px;
+            }
+
+            /* Enhanced Desktop Header */
+            .news-header {
+                padding: 1.2rem 1rem;
+                background: linear-gradient(180deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.4) 100%);
+                border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+            }
+
+            .news-title {
+                font-size: 1.1rem;
+                font-weight: 700;
+                margin-bottom: 1rem;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                color: white;
+            }
+
+            /* Enhanced Desktop Filters */
+            .news-filters {
+                display: flex;
+                gap: 0.4rem;
+                flex-wrap: wrap;
+            }
+
+            .news-filter {
+                padding: 0.4rem 0.9rem;
+                font-size: 0.75rem;
+                background: rgba(255, 255, 255, 0.05);
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 20px;
+                cursor: pointer;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                font-weight: 500;
+                letter-spacing: 0.3px;
+                position: relative;
+                overflow: hidden;
+            }
+
+            .news-filter::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 0;
+                height: 100%;
+                background: linear-gradient(90deg, rgba(139, 92, 246, 0.2), rgba(59, 130, 246, 0.2));
+                transition: width 0.3s ease;
+                z-index: -1;
+            }
+
+            .news-filter:hover {
+                transform: translateY(-2px);
+                border-color: rgba(139, 92, 246, 0.3);
+                box-shadow: 0 4px 12px rgba(139, 92, 246, 0.15);
+            }
+
+            .news-filter:hover::before {
+                width: 100%;
+            }
+
+            .news-filter.active {
+                background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(59, 130, 246, 0.2));
+                border-color: rgba(139, 92, 246, 0.5);
+                color: #a78bfa;
+                font-weight: 600;
+                box-shadow: 0 0 20px rgba(139, 92, 246, 0.2);
+            }
+
+            /* Desktop category icons */
+            .news-filter[data-category="all"]::after { content: '🌍'; margin-left: 0.3rem; font-size: 0.8rem; }
+            .news-filter[data-category="breaking"]::after { content: '🚨'; margin-left: 0.3rem; font-size: 0.8rem; }
+            .news-filter[data-category="tech"]::after { content: '💻'; margin-left: 0.3rem; font-size: 0.8rem; }
+            .news-filter[data-category="ai"]::after { content: '🤖'; margin-left: 0.3rem; font-size: 0.8rem; }
+            .news-filter[data-category="business"]::after { content: '💼'; margin-left: 0.3rem; font-size: 0.8rem; }
+            .news-filter[data-category="world"]::after { content: '🌐'; margin-left: 0.3rem; font-size: 0.8rem; }
+            .news-filter[data-category="health"]::after { content: '🏥'; margin-left: 0.3rem; font-size: 0.8rem; }
+
+            /* Desktop news content wrapper */
+            .news-content {
+                flex: 1;
+                overflow: hidden;
+                position: relative;
+            }
+
+            /* Desktop auto-scroll ticker container */
+            .news-ticker-wrapper {
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                padding: 1rem;
+                animation: smoothScroll 30s linear infinite;
+            }
+
+            .news-ticker-wrapper.paused {
+                animation-play-state: paused;
+            }
+
+            @keyframes smoothScroll {
+                0% {
+                    transform: translateY(0);
+                }
+                100% {
+                    transform: translateY(-50%);
+                }
+            }
+            
+            /* Hide mobile FAB on desktop */
+            .mobile-news-fab {
+                display: none !important;
+            }
+        }
+
+        /* Mobile Optimized News Feed */
+        @media (max-width: 768px) {
+            .news-feed-container {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                width: 100vw;
+                height: 70vh;
+                background: rgba(0, 0, 0, 0.5);
+                backdrop-filter: blur(8px);
+                -webkit-backdrop-filter: blur(8px);
+                border-top: 1px solid rgba(139, 92, 246, 0.3);
+                z-index: 2000;
+                display: flex;
+                flex-direction: column;
+                border-radius: 20px 20px 0 0;
+                transform: translateY(100%);
+                transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+                opacity: 0;
+                visibility: hidden;
+                pointer-events: none;
+                will-change: transform;
+            }
+
+            .news-feed-container.enabled {
+                visibility: visible;
+                opacity: 1;
+                pointer-events: auto;
+            }
+
+            .news-feed-container.open {
+                transform: translateY(0);
+            }
+
+            /* Mobile header with drag handle */
+            .news-header {
+                padding: 0;
+                background: transparent;
+                border-bottom: none;
+                flex-shrink: 0;
+            }
+
+            /* Improved drag handle - more responsive */
+            .mobile-drag-handle {
+                width: 100%;
+                height: 44px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: grab;
+                touch-action: none;
+                position: relative;
+                background: transparent;
+                transition: background 0.2s ease;
+            }
+
+            .mobile-drag-handle::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 100%;
+                background: transparent;
+            }
+            
+            /* Larger touch target area */
+            .mobile-drag-handle::after {
+                content: '↓ Swipe down to close';
+                position: absolute;
+                bottom: -18px;
+                font-size: 0.65rem;
+                color: rgba(255, 255, 255, 0.4);
+                opacity: 0;
+                transition: opacity 0.3s ease;
+                pointer-events: none;
+            }
+            
+            .mobile-drag-handle:active::after,
+            .mobile-drag-handle.dragging::after {
+                opacity: 1;
+            }
+
+            .drag-indicator {
+                width: 40px;
+                height: 4px;
+                background: rgba(255, 255, 255, 0.4);
+                border-radius: 2px;
+                transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                position: relative;
+            }
+            
+            /* Double line for better visibility */
+            .drag-indicator::after {
+                content: '';
+                position: absolute;
+                width: 100%;
+                height: 100%;
+                background: inherit;
+                border-radius: inherit;
+                top: 8px;
+            }
+
+            .mobile-drag-handle:active .drag-indicator,
+            .mobile-drag-handle.dragging .drag-indicator {
+                background: #8b5cf6;
+                width: 60px;
+                height: 5px;
+                box-shadow: 0 0 20px rgba(139, 92, 246, 0.8);
+                transform: scaleX(1.2);
+            }
+            
+            .mobile-drag-handle.dragging {
+                background: rgba(139, 92, 246, 0.05);
+            }
+
+            /* Mobile title and filters container */
+            .mobile-header-content {
+                padding: 0 1rem 0.5rem;
+                flex-shrink: 0;
+            }
+
+            /* Compact news title for mobile */
+            .news-title {
+                font-size: 0.85rem;
+                margin-bottom: 0.5rem;
+                text-align: center;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.5rem;
+                font-weight: 600;
+            }
+
+            /* Mobile filters - horizontal scroll with momentum */
+            .news-filters {
+                display: flex;
+                gap: 0.5rem;
+                overflow-x: auto;
+                padding-bottom: 0;
+                scrollbar-width: none;
+                -webkit-overflow-scrolling: touch;
+                touch-action: pan-x;
+                margin-bottom: 0.3rem;
+                scroll-snap-type: x proximity;
+                scroll-behavior: smooth;
+            }
+
+            .news-filters::-webkit-scrollbar {
+                display: none;
+            }
+
+            .news-filter {
+                padding: 0.4rem 0.9rem;
+                font-size: 0.72rem;
+                background: rgba(255, 255, 255, 0.08);
+                backdrop-filter: blur(5px);
+                border: 1px solid rgba(255, 255, 255, 0.15);
+                border-radius: 15px;
+                cursor: pointer;
+                transition: all 0.15s ease;
+                white-space: nowrap;
+                flex-shrink: 0;
+                font-weight: 500;
+                scroll-snap-align: center;
+                user-select: none;
+                -webkit-user-select: none;
+            }
+
+            .news-filter:active {
+                transform: scale(0.92);
+                background: rgba(255, 255, 255, 0.12);
+            }
+
+            .news-filter.active {
+                background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(59, 130, 246, 0.25));
+                border-color: rgba(139, 92, 246, 0.5);
+                color: #a78bfa;
+                transform: scale(1.05);
+            }
+
+            /* Mobile news content - optimized scrolling */
+            .mobile-news-content {
+                flex: 1;
+                overflow-y: auto;
+                overflow-x: hidden;
+                padding: 0 0.8rem 0.5rem 0.8rem;
+                scroll-behavior: smooth;
+                -webkit-overflow-scrolling: touch;
+                overscroll-behavior-y: contain;
+                touch-action: pan-y;
+                min-height: 0;
+                position: relative;
+                will-change: scroll-position;
+            }
+            
+            /* Mobile auto-scroll animation */
+            .mobile-news-content.auto-scroll .mobile-news-ticker {
+                animation: mobileScroll 40s linear infinite;
+            }
+            
+            .mobile-news-content.auto-scroll.paused .mobile-news-ticker {
+                animation-play-state: paused;
+            }
+            
+            @keyframes mobileScroll {
+                0% {
+                    transform: translateY(0);
+                }
+                100% {
+                    transform: translateY(-50%);
+                }
+            }
+
+            /* Thin scrollbar for mobile */
+            .mobile-news-content::-webkit-scrollbar {
+                width: 3px;
+            }
+
+            .mobile-news-content::-webkit-scrollbar-track {
+                background: transparent;
+            }
+
+            .mobile-news-content::-webkit-scrollbar-thumb {
+                background: rgba(139, 92, 246, 0.3);
+                border-radius: 2px;
+            }
+
+            /* Mobile news ticker */
+            .mobile-news-ticker {
+                padding-bottom: 20px;
+            }
+
+            /* Improved mobile news cards with better touch feedback */
+            .mobile-news-card {
+                background: rgba(255, 255, 255, 0.05);
+                backdrop-filter: blur(5px);
+                border: 1px solid rgba(139, 92, 246, 0.15);
+                border-radius: 12px;
+                padding: 0.9rem;
+                margin-bottom: 0.5rem;
+                cursor: pointer;
+                transition: all 0.15s ease;
+                user-select: none;
+                -webkit-user-select: none;
+                position: relative;
+                overflow: hidden;
+            }
+
+            .mobile-news-card::before {
+                content: '';
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                width: 0;
+                height: 0;
+                border-radius: 50%;
+                background: rgba(139, 92, 246, 0.2);
+                transform: translate(-50%, -50%);
+                transition: width 0.4s, height 0.4s;
+            }
+
+            .mobile-news-card:active::before {
+                width: 300px;
+                height: 300px;
+            }
+
+            .mobile-news-card:first-child {
+                margin-top: 0;
+            }
+
+            .mobile-news-card:active {
+                transform: scale(0.97);
+                background: rgba(139, 92, 246, 0.08);
+            }
+
+            /* Enhanced FAB button with better animations */
+            .mobile-news-fab {
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                width: 50px;
+                height: 50px;
+                background: linear-gradient(135deg, #8b5cf6, #3b82f6);
+                border-radius: 25px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+                cursor: pointer;
+                z-index: 1999;
+                opacity: 0;
+                visibility: hidden;
+                transform: scale(0) rotate(-180deg);
+                transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+                user-select: none;
+                -webkit-user-select: none;
+            }
+
+            .mobile-news-fab.enabled {
+                opacity: 1;
+                visibility: visible;
+                transform: scale(1) rotate(0);
+            }
+
+            .mobile-news-fab:active {
+                transform: scale(0.9) rotate(0);
+            }
+
+            .mobile-news-fab-icon {
+                font-size: 1.2rem;
+                transition: transform 0.3s ease;
+            }
+
+            .mobile-news-fab.open .mobile-news-fab-icon {
+                transform: rotate(180deg);
+            }
+
+            .news-badge {
+                position: absolute;
+                top: -5px;
+                right: -5px;
+                background: #ff4757;
+                color: white;
+                font-size: 0.65rem;
+                font-weight: bold;
+                padding: 2px 6px;
+                border-radius: 10px;
+                min-width: 20px;
+                text-align: center;
+                display: none;
+                animation: badgePulse 2s ease-in-out infinite;
+            }
+
+            @keyframes badgePulse {
+                0%, 100% { transform: scale(1); }
+                50% { transform: scale(1.1); }
+            }
+
+            .news-badge.show {
+                display: block;
+            }
+        }
+
+        /* Desktop news toggle */
+        .news-toggle {
+            position: absolute;
+            left: -40px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 40px;
+            height: 80px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-right: none;
+            border-radius: 10px 0 0 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        @media (max-width: 768px) {
+            .news-toggle {
+                display: none !important;
+            }
+        }
+
+        .news-feed-container.enabled .news-toggle {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .news-toggle:hover {
+            background: rgba(139, 92, 246, 0.1);
+            border-color: rgba(139, 92, 246, 0.5);
+            width: 45px;
+        }
+
+        .news-toggle-icon {
+            transition: transform 0.3s ease;
+        }
+
+        .news-item {
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .news-item:hover {
+            background: rgba(139, 92, 246, 0.08);
+            border-color: rgba(139, 92, 246, 0.3);
+            transform: translateX(-5px);
+        }
+
+        .news-item.breaking {
+            border-color: rgba(255, 59, 48, 0.4);
+            background: rgba(255, 59, 48, 0.08);
+        }
+
+        .news-item-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            line-height: 1.3;
+        }
+
+        .news-item-meta {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .news-item-category {
+            color: #a78bfa;
+            font-weight: 500;
+        }
+
+        .news-item-summary {
+            font-size: 0.75rem;
+            line-height: 1.4;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        /* Live indicator */
+        .live-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0.2rem 0.5rem;
+            background: rgba(255, 0, 0, 0.15);
+            border: 1px solid rgba(255, 0, 0, 0.4);
+            border-radius: 10px;
+            font-size: 0.65rem;
+            font-weight: 600;
+        }
+
+        .live-dot {
+            width: 6px;
+            height: 6px;
+            background: #ff0000;
+            border-radius: 50%;
+            animation: livePulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes livePulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.3; transform: scale(0.8); }
+        }
+
+        /* Main container - Full screen utilization */
+        .main-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            height: 100dvh;
+            padding: 0.5rem;
+            position: relative;
+            transition: margin-right 0.3s ease;
+        }
+
+        .camera-interface {
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid rgba(139, 92, 246, 0.5);
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        @media (min-width: 769px) {
+            .main-container {
+                padding: 0.5rem;
+            }
+            
+            .camera-interface {
+                max-width: min(1200px, 100vw - 1rem);
+                max-height: min(800px, 100vh - 1rem);
+                border: 2px solid rgba(139, 92, 246, 0.5);
+                border-radius: 20px;
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            }
+        }
+
+        .camera-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: none;
+        }
+
+        .camera-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 1.5rem;
+        }
+
+        .placeholder-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            opacity: 0.6;
+        }
+
+        @media (min-width: 769px) {
+            .placeholder-icon {
+                font-size: 3rem;
+                margin-bottom: 1.5rem;
+            }
+        }
+
+        .placeholder-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            justify-content: center;
+        }
+
+        .placeholder-title-text {
+            background: linear-gradient(45deg, #8b5cf6, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .placeholder-logo {
+            height: 2rem;
+            width: auto;
+            object-fit: contain;
+        }
+
+        @media (min-width: 769px) {
+            .placeholder-title {
+                font-size: 2rem;
+                margin-bottom: 1rem;
+                gap: 1rem;
+            }
+            
+            .placeholder-logo {
+                height: 2.5rem;
+            }
+        }
+
+        .placeholder-subtitle {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-bottom: 1.5rem;
+            line-height: 1.4;
+            max-width: min(400px, 85vw);
+        }
+
+        @media (min-width: 769px) {
+            .placeholder-subtitle {
+                font-size: 1rem;
+                margin-bottom: 2rem;
+                max-width: 500px;
+            }
+        }
+
+        .start-button {
+            padding: 1rem 2rem;
+            font-size: 1rem;
+            background: linear-gradient(45deg, #8b5cf6, #3b82f6);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .start-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(139, 92, 246, 0.4);
+        }
+
+        .start-button:active {
+            transform: translateY(0);
+        }
+
+        @media (min-width: 769px) {
+            .start-button {
+                padding: 1.2rem 2.5rem;
+                font-size: 1.1rem;
+                border-radius: 15px;
+            }
+        }
+
+        .controls-overlay {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            display: none;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .controls-overlay.show {
+            display: flex;
+        }
+
+        .control-btn {
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            border-radius: 8px;
+            padding: 0.5rem 0.8rem;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+        }
+
+        .control-btn:hover {
+            border-color: rgba(139, 92, 246, 0.7);
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        @media (min-width: 769px) {
+            .control-btn {
+                padding: 0.6rem 1rem;
+                font-size: 0.9rem;
+                border-radius: 10px;
+            }
+        }
+
+        .chat-overlay {
+            position: absolute;
+            bottom: 4.5rem;
+            right: 0.5rem;
+            left: 0.5rem;
+            max-width: min(320px, 90vw);
+            max-height: 120px;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-radius: 8px;
+            padding: 0.75rem;
+            display: none;
+            font-size: 0.85rem;
+            overflow-y: auto;
+        }
+
+        .chat-overlay.show {
+            display: block;
+        }
+
+        /* Mobile-specific positioning next to FAB */
+        @media (max-width: 768px) {
+            .chat-overlay {
+                bottom: 20px;
+                left: 20px;
+                right: auto;
+                max-width: calc(100vw - 100px);
+                width: auto;
+                margin: 0;
+                padding: 0.6rem 0.8rem;
+                border-radius: 15px;
+                font-size: 0.75rem;
+                line-height: 1.3;
+                max-height: 60px;
+                display: none;
+                align-items: center;
+                background: linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 20, 50, 0.9));
+                border: 1px solid rgba(139, 92, 246, 0.4);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            }
+            
+            .chat-overlay.show {
+                display: flex;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .chat-overlay {
+                bottom: 2.5rem;
+                right: 1rem;
+                left: 1rem;
+                max-width: 350px;
+                max-height: 150px;
+                padding: 1rem;
+                border-radius: 10px;
+            }
+        }
+
+        /* Vision status indicator */
+        .vision-status {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            display: none;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+
+        .vision-status.show {
+            display: flex;
+        }
+
+        .vision-status.analyzing {
+            border-color: rgba(139, 92, 246, 0.8);
+            animation: visionPulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes visionPulse {
+            0%, 100% { box-shadow: 0 0 10px rgba(139, 92, 246, 0.3); }
+            50% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.6); }
+        }
+
+        .vision-dot {
+            width: 8px;
+            height: 8px;
+            background: rgba(139, 92, 246, 0.8);
+            border-radius: 50%;
+            animation: visionDotPulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes visionDotPulse {
+            0%, 100% { opacity: 0.3; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+
+        /* Detected objects overlay */
+        .objects-overlay {
+            position: absolute;
+            top: 3.5rem;
+            left: 1rem;
+            right: 1rem;
+            display: none;
+            flex-wrap: wrap;
+            gap: 0.3rem;
+            max-width: 300px;
+        }
+
+        .objects-overlay.show {
+            display: flex;
+        }
+
+        .object-tag {
+            padding: 0.3rem 0.6rem;
+            background: rgba(139, 92, 246, 0.15);
+            border: 1px solid rgba(139, 92, 246, 0.4);
+            border-radius: 12px;
+            font-size: 0.7rem;
+            color: #a78bfa;
+            animation: tagFadeIn 0.3s ease;
+        }
+
+        @keyframes tagFadeIn {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* AI suggestions panel */
+        .suggestions-panel {
+            position: absolute;
+            bottom: 10rem;
+            right: 1rem;
+            width: 250px;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 10px;
+            padding: 0.8rem;
+            display: none;
+        }
+
+        .suggestions-panel.show {
+            display: block;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .suggestion-title {
+            font-size: 0.75rem;
+            color: #3b82f6;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .suggestion-item {
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.8);
+            padding: 0.3rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .suggestion-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Mobile News FAB Button -->
+    <div id="mobile-news-fab" class="mobile-news-fab" onclick="toggleNewsFeed()">
+        <span class="mobile-news-fab-icon">📰</span>
+        <span id="news-badge" class="news-badge"></span>
+    </div>
+
+    <!-- News Feed Panel -->
+    <div id="news-feed" class="news-feed-container">
+        <!-- Desktop toggle -->
+        <div class="news-toggle" onclick="toggleNewsFeed()">
+            <span class="news-toggle-icon">📰</span>
+        </div>
+
+        <!-- Mobile drag handle -->
+        <div class="mobile-drag-handle" id="mobile-drag-handle">
+            <div class="drag-indicator"></div>
+        </div>
+
+        <!-- News header -->
+        <div class="news-header">
+            <div class="mobile-header-content">
+                <div class="news-title">
+                    Live News Feed
+                    <span class="live-indicator">
+                        <span class="live-dot"></span>
+                        LIVE
+                    </span>
+                </div>
+                <div class="news-filters">
+                    <div class="news-filter active" data-category="all">All</div>
+                    <div class="news-filter" data-category="breaking">Breaking</div>
+                    <div class="news-filter" data-category="tech">Tech</div>
+                    <div class="news-filter" data-category="ai">AI</div>
+                    <div class="news-filter" data-category="business">Business</div>
+                    <div class="news-filter" data-category="world">World</div>
+                    <div class="news-filter" data-category="health">Health</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Desktop content container -->
+        <div class="news-content" id="news-content">
+            <div class="news-ticker-wrapper" id="news-ticker">
+                <!-- Desktop news items will be inserted here -->
+            </div>
+        </div>
+
+        <!-- Mobile content container -->
+        <div class="mobile-news-content" id="mobile-news-content">
+            <div class="mobile-news-ticker" id="mobile-news-ticker">
+                <!-- Mobile cards will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Camera Interface -->
+    <div class="main-container" id="main-container">
+        <div class="camera-interface" id="camera-interface">
+            <div id="camera-placeholder" class="camera-placeholder">
+                <div class="placeholder-title">
+                    <img src="./logo.png" alt="Euphorie Logo" class="placeholder-logo">
+                    <span class="placeholder-title-text">Euphorie AI</span>
+                </div>
+                <div class="placeholder-subtitle">
+                    Show me anything. I'll help instantly.
+                </div>
+                <button class="start-button" onclick="startCamera()">
+                    Initialize System
+                </button>
+            </div>
+            
+            <video id="camera-video" class="camera-video" autoplay muted playsinline></video>
+            
+            <!-- Vision status indicator -->
+            <div id="vision-status" class="vision-status">
+                <span class="vision-dot"></span>
+                <span id="vision-status-text">AI Vision Monitoring</span>
+            </div>
+            
+            <!-- Detected objects overlay -->
+            <div id="objects-overlay" class="objects-overlay">
+                <!-- Object tags will be inserted here -->
+            </div>
+            
+            <!-- Controls overlay - Simplified to just Stop button -->
+            <div id="controls-overlay" class="controls-overlay">
+                <button class="control-btn" onclick="stopCamera()">❌ Stop</button>
+            </div>
+            
+            <!-- AI suggestions panel -->
+            <div id="suggestions-panel" class="suggestions-panel">
+                <div class="suggestion-title">💡 AI Suggestions</div>
+                <div id="suggestions-list">
+                    <!-- Suggestions will be inserted here -->
+                </div>
+            </div>
+            
+            <!-- Chat overlay -->
+            <div id="chat-overlay" class="chat-overlay">
+                <div id="ai-message" class="ai-message">AI insights will appear here...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Detect if running in Capacitor native app
+        const isCapacitor = window.Capacitor !== undefined;
+        const isIOS = isCapacitor && window.Capacitor.getPlatform() === 'ios';
+        const isAndroid = isCapacitor && window.Capacitor.getPlatform() === 'android';
+
+        // Configuration
+        const CONFIG = {
+            backendUrl: window.location.hostname === 'localhost' 
+                ? 'http://localhost:8001' 
+                : 'https://api.euphorie.com', // Update with your production backend URL
+            visionAnalysisInterval: 3000, // Analyze every 3 seconds
+            captureQuality: 0.8
+        };
+
+        // Vision Analyzer Class - Continuous Monitoring Version
+        class VisionAnalyzer {
+            constructor() {
+                this.analyzing = false;
+                this.analysisInterval = null;
+                this.lastAnalysisTime = 0;
+            }
+
+            startAnalysis() {
+                if (this.analyzing) return;
+                this.analyzing = true;
+                
+                const visionStatus = document.getElementById('vision-status');
+                
+                if (visionStatus) {
+                    visionStatus.classList.add('show', 'analyzing');
+                    document.getElementById('vision-status-text').textContent = 'AI Vision Monitoring';
+                }
+                
+                // Initial analysis
+                this.captureAndAnalyze();
+                
+                // Set up periodic analysis
+                this.analysisInterval = setInterval(() => {
+                    this.captureAndAnalyze();
+                }, CONFIG.visionAnalysisInterval);
+            }
+
+            async captureAndAnalyze() {
+                const video = document.getElementById('camera-video');
+                if (!video || !video.srcObject) return;
+                
+                // Create canvas for frame capture
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth || 640;
+                canvas.height = video.videoHeight || 480;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                // Convert to base64
+                const imageData = canvas.toDataURL('image/jpeg', CONFIG.captureQuality);
+                
+                try {
+                    const response = await fetch(`${CONFIG.backendUrl}/api/vision/analyze`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            user_id: this.getUserId(),
+                            image: imageData,
+                            context: this.getContext()
+                        })
+                    });
+                    
+                    if (!response.ok) throw new Error('Vision analysis failed');
+                    
+                    const data = await response.json();
+                    this.handleAnalysisResponse(data);
+                    
+                } catch (error) {
+                    console.error('Vision analysis error:', error);
+                    // Silent fail - don't interrupt user with error messages
+                }
+            }
+
+            handleAnalysisResponse(data) {
+                // Only show meaningful insights, not every response
+                if (data.insight && data.should_respond) {
+                    this.showMessage(data.insight);
+                }
+                
+                // Display detected objects only if they're significant
+                if (data.objects_detected && data.objects_detected.length > 0 && data.confidence > 0.7) {
+                    this.displayObjects(data.objects_detected);
+                }
+                
+                // Show suggestions only if highly relevant
+                if (data.suggestions && data.suggestions.length > 0 && data.confidence > 0.8) {
+                    this.displaySuggestions(data.suggestions);
+                }
+                
+                // Update confidence indicator subtly
+                this.updateConfidence(data.confidence);
+            }
+
+            displayObjects(objects) {
+                const overlay = document.getElementById('objects-overlay');
+                if (!overlay) return;
+                
+                overlay.innerHTML = '';
+                objects.forEach(obj => {
+                    const tag = document.createElement('div');
+                    tag.className = 'object-tag';
+                    tag.textContent = obj;
+                    overlay.appendChild(tag);
+                });
+                
+                overlay.classList.add('show');
+                
+                // Hide after 5 seconds
+                setTimeout(() => {
+                    overlay.classList.remove('show');
+                }, 5000);
+            }
+
+            displaySuggestions(suggestions) {
+                const panel = document.getElementById('suggestions-panel');
+                const list = document.getElementById('suggestions-list');
+                
+                if (!panel || !list) return;
+                
+                list.innerHTML = '';
+                suggestions.forEach(suggestion => {
+                    const item = document.createElement('div');
+                    item.className = 'suggestion-item';
+                    item.textContent = suggestion;
+                    list.appendChild(item);
+                });
+                
+                panel.classList.add('show');
+                
+                // Hide after 8 seconds
+                setTimeout(() => {
+                    panel.classList.remove('show');
+                }, 8000);
+            }
+
+            updateConfidence(confidence) {
+                const statusText = document.getElementById('vision-status-text');
+                if (statusText && this.analyzing && confidence > 0) {
+                    const percentage = Math.round(confidence * 100);
+                    statusText.textContent = `AI Vision Monitoring (${percentage}%)`;
+                    
+                    // After 3 seconds, revert to simple text
+                    setTimeout(() => {
+                        if (this.analyzing) {
+                            statusText.textContent = 'AI Vision Monitoring';
+                        }
+                    }, 3000);
+                }
+            }
+
+            showMessage(text, duration = 5000) {
+                const messageEl = document.getElementById('ai-message');
+                if (messageEl) {
+                    messageEl.textContent = text;
+                    
+                    if (duration > 0) {
+                        setTimeout(() => {
+                            if (messageEl.textContent === text) {
+                                messageEl.textContent = 'Monitoring your workspace...';
+                            }
+                        }, duration);
+                    }
+                }
+            }
+
+            stopAnalysis() {
+                this.analyzing = false;
+                
+                if (this.analysisInterval) {
+                    clearInterval(this.analysisInterval);
+                    this.analysisInterval = null;
+                }
+                
+                const visionStatus = document.getElementById('vision-status');
+                const objectsOverlay = document.getElementById('objects-overlay');
+                const suggestionsPanel = document.getElementById('suggestions-panel');
+                
+                if (visionStatus) {
+                    visionStatus.classList.remove('analyzing', 'show');
+                }
+                if (objectsOverlay) objectsOverlay.classList.remove('show');
+                if (suggestionsPanel) suggestionsPanel.classList.remove('show');
+            }
+
+            getUserId() {
+                // Get or create a user ID
+                let userId = localStorage.getItem('euphorie_user_id');
+                if (!userId) {
+                    userId = 'user_' + Math.random().toString(36).substr(2, 9);
+                    localStorage.setItem('euphorie_user_id', userId);
+                }
+                return userId;
+            }
+
+            getContext() {
+                // Gather context about what the user might be doing
+                const time = new Date().getHours();
+                if (time < 12) return 'morning_work';
+                if (time < 17) return 'afternoon_work';
+                return 'evening_work';
+            }
+        }
+
+        // Enhanced News Feed Manager
+        class NewsFeedManager {
+            constructor() {
+                this.ws = null;
+                this.articles = new Map();
+                this.currentFilter = 'all';
+                this.feedOpen = false;
+                this.feedEnabled = false;
+                this.wasOpenBeforeStop = false;
+                this.reconnectAttempts = 0;
+                this.maxReconnectAttempts = 5;
+                this.reconnectDelay = 1000;
+                this.newArticleCount = 0;
+                this.isMobile = window.innerWidth <= 768;
+                this.autoScrollEnabled = true;
+                this.touchStartY = 0;
+                this.currentTranslateY = 0;
+                this.scrollSpeed = 30;
+                this.duplicateCount = 2;
+            }
+
+            activate() {
+                if (this.feedEnabled) return;
+                
+                this.feedEnabled = true;
+                const feedContainer = document.getElementById('news-feed');
+                const mobileFab = document.getElementById('mobile-news-fab');
+                
+                feedContainer.classList.add('enabled');
+                
+                if (this.isMobile) {
+                    if (mobileFab) {
+                        mobileFab.classList.add('enabled');
+                        setTimeout(() => {
+                            mobileFab.style.animation = 'badgePulse 0.5s ease 3';
+                            setTimeout(() => {
+                                mobileFab.style.animation = '';
+                            }, 1500);
+                        }, 500);
+                    }
+                    
+                    this.setupMobileGestures();
+                    this.setupCameraTouchListener();
+                } else {
+                    this.setupDesktopAutoScroll();
+                }
+                
+                this.init();
+                
+                const isFirstTimeEver = !localStorage.getItem('euphorie_feed_seen');
+                
+                if (!this.isMobile && isFirstTimeEver) {
+                    setTimeout(() => {
+                        this.toggleFeed();
+                        localStorage.setItem('euphorie_feed_seen', 'true');
+                        setTimeout(() => {
+                            if (this.feedOpen) {
+                                this.toggleFeed();
+                            }
+                        }, 10000);
+                    }, 3000);
+                } else if (!this.isMobile && this.wasOpenBeforeStop) {
+                    setTimeout(() => {
+                        this.openFeed();
+                    }, 100);
+                }
+                
+                this.wasOpenBeforeStop = false;
+            }
+
+            setupCameraTouchListener() {
+                const cameraVideo = document.getElementById('camera-video');
+                const cameraInterface = document.getElementById('camera-interface');
+                const chatOverlay = document.getElementById('chat-overlay');
+                
+                if (!cameraVideo || !cameraInterface || !this.isMobile) return;
+                
+                if (this.cameraListeners) {
+                    this.removeCameraListeners();
+                }
+                
+                const handleCameraTouch = (e) => {
+                    if (this.feedOpen && 
+                        (e.target === cameraVideo || 
+                         e.target === cameraInterface || 
+                         e.target === chatOverlay ||
+                         chatOverlay.contains(e.target))) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        this.toggleFeed();
+                    }
+                };
+                
+                cameraVideo.addEventListener('touchstart', handleCameraTouch, { passive: false, capture: true });
+                cameraInterface.addEventListener('touchstart', handleCameraTouch, { passive: false, capture: true });
+                if (chatOverlay) {
+                    chatOverlay.addEventListener('touchstart', handleCameraTouch, { passive: false, capture: true });
+                }
+                
+                this.cameraListeners = { 
+                    handleCameraTouch,
+                    elements: [cameraVideo, cameraInterface, chatOverlay]
+                };
+            }
+            
+            removeCameraListeners() {
+                if (this.cameraListeners && this.cameraListeners.elements) {
+                    this.cameraListeners.elements.forEach(element => {
+                        if (element) {
+                            element.removeEventListener('touchstart', this.cameraListeners.handleCameraTouch, { capture: true });
+                        }
+                    });
+                    this.cameraListeners = null;
+                }
+            }
+
+            setupMobileGestures() {
+                const dragHandle = document.getElementById('mobile-drag-handle');
+                const feedContainer = document.getElementById('news-feed');
+                const mobileContent = document.getElementById('mobile-news-content');
+                
+                if (!dragHandle || !feedContainer) return;
+                
+                // Remove any existing listeners first
+                if (this.gestureCleanup) {
+                    this.gestureCleanup();
+                }
+                
+                let startY = 0;
+                let currentY = 0;
+                let isDragging = false;
+                let startTime = 0;
+                let dragDistance = 0;
+                let maxDragDistance = 0;
+                
+                const handleStart = (e) => {
+                    if (isDragging) return;
+                    
+                    isDragging = true;
+                    dragHandle.classList.add('dragging');
+                    startY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+                    currentY = startY;
+                    startTime = Date.now();
+                    dragDistance = 0;
+                    maxDragDistance = 0;
+                    
+                    feedContainer.style.transition = 'none';
+                    feedContainer.style.transform = 'translateY(0)';
+                    
+                    if (mobileContent) {
+                        mobileContent.classList.add('paused');
+                    }
+                };
+                
+                const handleMove = (e) => {
+                    if (!isDragging) return;
+                    
+                    currentY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+                    dragDistance = currentY - startY;
+                    
+                    if (dragDistance > maxDragDistance) {
+                        maxDragDistance = dragDistance;
+                    }
+                    
+                    if (this.feedOpen && dragDistance > 5) {
+                        e.preventDefault();
+                        const translateY = Math.min(dragDistance, window.innerHeight * 0.7);
+                        feedContainer.style.transform = `translateY(${translateY}px)`;
+                    }
+                };
+                
+                const handleEnd = () => {
+                    if (!isDragging) return;
+                    
+                    isDragging = false;
+                    dragHandle.classList.remove('dragging');
+                    
+                    const finalDragDistance = currentY - startY;
+                    const deltaTime = Date.now() - startTime;
+                    const velocity = deltaTime > 0 ? finalDragDistance / deltaTime : 0;
+                    
+                    feedContainer.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+                    
+                    const panelHeight = window.innerHeight * 0.7;
+                    const shouldClose = (
+                        maxDragDistance > 100 ||
+                        (velocity > 0.3 && finalDragDistance > 50) ||
+                        (finalDragDistance > panelHeight * 0.4)
+                    );
+                    
+                    if (shouldClose && this.feedOpen) {
+                        feedContainer.style.transform = `translateY(${panelHeight}px)`;
+                        
+                        setTimeout(() => {
+                            this.closeFeed();
+                            feedContainer.style.transform = '';
+                        }, 300);
+                    } else {
+                        feedContainer.style.transform = 'translateY(0)';
+                        
+                        if (mobileContent && this.feedOpen) {
+                            setTimeout(() => {
+                                mobileContent.classList.remove('paused');
+                            }, 300);
+                        }
+                    }
+                    
+                    dragDistance = 0;
+                    maxDragDistance = 0;
+                };
+                
+                dragHandle.addEventListener('touchstart', handleStart, { passive: true });
+                dragHandle.addEventListener('mousedown', handleStart);
+                
+                document.addEventListener('touchmove', handleMove, { passive: false });
+                document.addEventListener('touchend', handleEnd, { passive: true });
+                document.addEventListener('touchcancel', handleEnd, { passive: true });
+                document.addEventListener('mousemove', handleMove);
+                document.addEventListener('mouseup', handleEnd);
+                
+                let contentTouchStartY = 0;
+                let contentIsDragging = false;
+                let contentScrollTop = 0;
+                
+                const handleContentStart = (e) => {
+                    contentTouchStartY = e.touches[0].clientY;
+                    contentScrollTop = mobileContent.scrollTop;
+                    contentIsDragging = false;
+                };
+                
+                const handleContentMove = (e) => {
+                    if (contentScrollTop <= 0 && mobileContent.scrollTop <= 0) {
+                        const deltaY = e.touches[0].clientY - contentTouchStartY;
+                        
+                        if (deltaY > 20 && !contentIsDragging) {
+                            contentIsDragging = true;
+                            feedContainer.style.transition = 'none';
+                        }
+                        
+                        if (contentIsDragging) {
+                            e.preventDefault();
+                            const translateY = Math.min(deltaY - 20, window.innerHeight * 0.7);
+                            feedContainer.style.transform = `translateY(${translateY}px)`;
+                        }
+                    }
+                };
+                
+                const handleContentEnd = () => {
+                    if (!contentIsDragging) return;
+                    
+                    const transform = window.getComputedStyle(feedContainer).transform;
+                    if (transform && transform !== 'none') {
+                        const matrix = new DOMMatrix(transform);
+                        const translateY = matrix.m42;
+                        
+                        feedContainer.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+                        
+                        if (translateY > 120) {
+                            feedContainer.style.transform = `translateY(${window.innerHeight * 0.7}px)`;
+                            setTimeout(() => {
+                                this.closeFeed();
+                                feedContainer.style.transform = '';
+                            }, 300);
+                        } else {
+                            feedContainer.style.transform = 'translateY(0)';
+                        }
+                    }
+                    contentIsDragging = false;
+                };
+                
+                if (mobileContent) {
+                    mobileContent.addEventListener('touchstart', handleContentStart, { passive: true });
+                    mobileContent.addEventListener('touchmove', handleContentMove, { passive: false });
+                    mobileContent.addEventListener('touchend', handleContentEnd, { passive: true });
+                }
+                
+                this.gestureCleanup = () => {
+                    dragHandle.removeEventListener('touchstart', handleStart);
+                    dragHandle.removeEventListener('mousedown', handleStart);
+                    document.removeEventListener('touchmove', handleMove);
+                    document.removeEventListener('touchend', handleEnd);
+                    document.removeEventListener('touchcancel', handleEnd);
+                    document.removeEventListener('mousemove', handleMove);
+                    document.removeEventListener('mouseup', handleEnd);
+                    
+                    if (mobileContent) {
+                        mobileContent.removeEventListener('touchstart', handleContentStart);
+                        mobileContent.removeEventListener('touchmove', handleContentMove);
+                        mobileContent.removeEventListener('touchend', handleContentEnd);
+                    }
+                };
+                
+                this.setupMobileAutoScroll(mobileContent);
+            }
+            
+            setupMobileAutoScroll(mobileContent) {
+                if (!mobileContent) return;
+                
+                mobileContent.classList.add('auto-scroll');
+                
+                let userScrolling = false;
+                let scrollTimeout;
+                
+                mobileContent.addEventListener('touchstart', () => {
+                    userScrolling = true;
+                    mobileContent.classList.add('paused');
+                }, { passive: true });
+                
+                mobileContent.addEventListener('touchend', () => {
+                    clearTimeout(scrollTimeout);
+                    scrollTimeout = setTimeout(() => {
+                        userScrolling = false;
+                        mobileContent.classList.remove('paused');
+                    }, 3000);
+                }, { passive: true });
+                
+                mobileContent.addEventListener('scroll', () => {
+                    if (!userScrolling) {
+                        mobileContent.classList.add('paused');
+                        clearTimeout(scrollTimeout);
+                        scrollTimeout = setTimeout(() => {
+                            mobileContent.classList.remove('paused');
+                        }, 3000);
+                    }
+                }, { passive: true });
+            }
+
+            init() {
+                this.setupFilters();
+                this.loadInitialFeed();
+            }
+
+            setupDesktopAutoScroll() {
+                const content = document.getElementById('news-content');
+                const ticker = document.getElementById('news-ticker');
+                
+                if (!content || !ticker || this.isMobile) return;
+                
+                content.addEventListener('mouseenter', () => {
+                    ticker.classList.add('paused');
+                    this.autoScrollEnabled = false;
+                });
+                
+                content.addEventListener('mouseleave', () => {
+                    ticker.classList.remove('paused');
+                    this.autoScrollEnabled = true;
+                });
+                
+                this.restartAutoScroll();
+            }
+
+            restartAutoScroll() {
+                if (this.isMobile) return;
+                
+                const ticker = document.getElementById('news-ticker');
+                if (!ticker) return;
+                
+                ticker.style.animation = 'none';
+                ticker.offsetHeight;
+                ticker.style.animation = `smoothScroll ${this.scrollSpeed}s linear infinite`;
+            }
+
+            async loadInitialFeed() {
+                if (!this.feedEnabled) return;
+                
+                const demoArticles = [
+                    {
+                        id: '1',
+                        title: 'AI Breakthrough: New Model Achieves Human-Level Reasoning',
+                        category: 'AI',
+                        summary: 'Researchers announce a revolutionary AI system that demonstrates unprecedented reasoning capabilities across multiple domains, marking a significant milestone in artificial intelligence development.',
+                        published: new Date().toISOString(),
+                        is_breaking: true,
+                        source_name: 'Tech News',
+                        url: '#'
+                    },
+                    {
+                        id: '2',
+                        title: 'Global Markets React to Fed Interest Rate Decision',
+                        category: 'Business',
+                        summary: 'Stock markets surge following the Federal Reserve\'s latest monetary policy announcement, with major indices reaching new highs.',
+                        published: new Date(Date.now() - 3600000).toISOString(),
+                        source_name: 'Financial Times',
+                        url: '#'
+                    },
+                    {
+                        id: '3',
+                        title: 'Revolutionary Battery Technology Promises 1000-Mile EV Range',
+                        category: 'Tech',
+                        summary: 'Scientists develop a new solid-state battery that could revolutionize electric vehicle adoption with unprecedented range and charging speeds.',
+                        published: new Date(Date.now() - 7200000).toISOString(),
+                        source_name: 'Science Daily',
+                        url: '#'
+                    },
+                    {
+                        id: '4',
+                        title: 'Climate Summit: Nations Agree on Historic Carbon Reduction Plan',
+                        category: 'World',
+                        summary: 'World leaders reach unprecedented agreement on aggressive carbon emission reduction targets for 2030.',
+                        published: new Date(Date.now() - 10800000).toISOString(),
+                        source_name: 'Reuters',
+                        url: '#'
+                    },
+                    {
+                        id: '5',
+                        title: 'New Study Links Exercise to Enhanced Cognitive Function',
+                        category: 'Health',
+                        summary: 'Research shows regular physical activity significantly improves memory and problem-solving abilities in all age groups.',
+                        published: new Date(Date.now() - 14400000).toISOString(),
+                        source_name: 'Health News',
+                        url: '#'
+                    }
+                ];
+                
+                demoArticles.forEach(article => {
+                    this.articles.set(article.id, article);
+                });
+                
+                this.renderFeed();
+                
+                try {
+                    const response = await fetch(`${CONFIG.backendUrl}/api/news/feed?limit=30`);
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        
+                        if (data.articles && Array.isArray(data.articles)) {
+                            this.articles.clear();
+                            data.articles.forEach(article => {
+                                this.articles.set(article.id, article);
+                            });
+                            
+                            this.renderFeed();
+                        }
+                        
+                        this.startPolling();
+                    }
+                } catch (error) {
+                    console.log('Using demo articles - backend not available');
+                }
+            }
+
+            startPolling() {
+                this.pollingInterval = setInterval(async () => {
+                    if (!this.feedEnabled) return;
+                    
+                    try {
+                        const response = await fetch(`${CONFIG.backendUrl}/api/news/feed?limit=5`);
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.articles && Array.isArray(data.articles)) {
+                                let hasNewArticles = false;
+                                data.articles.forEach(article => {
+                                    if (!this.articles.has(article.id)) {
+                                        this.articles.set(article.id, article);
+                                        this.newArticleCount++;
+                                        hasNewArticles = true;
+                                    }
+                                });
+                                
+                                if (hasNewArticles) {
+                                    this.updateBadge();
+                                    this.renderFeed();
+                                }
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Polling error:', error);
+                    }
+                }, 30000);
+            }
+
+            updateBadge() {
+                if (this.isMobile && !this.feedOpen) {
+                    const badge = document.getElementById('news-badge');
+                    if (badge && this.newArticleCount > 0) {
+                        badge.textContent = this.newArticleCount > 99 ? '99+' : this.newArticleCount;
+                        badge.classList.add('show');
+                    }
+                }
+            }
+
+            openFeed() {
+                if (!this.feedEnabled || this.feedOpen) return;
+                
+                const feed = document.getElementById('news-feed');
+                const mainContainer = document.getElementById('main-container');
+                
+                this.feedOpen = true;
+                
+                requestAnimationFrame(() => {
+                    feed.classList.add('open');
+                    
+                    if (!this.isMobile) {
+                        mainContainer.classList.add('news-open');
+                        const toggleIcon = document.querySelector('.news-toggle-icon');
+                        if (toggleIcon) {
+                            toggleIcon.textContent = '✕';
+                        }
+                    }
+                });
+            }
+
+            closeFeed() {
+                if (!this.feedEnabled || !this.feedOpen) return;
+                
+                const feed = document.getElementById('news-feed');
+                const mainContainer = document.getElementById('main-container');
+                const mobileFab = document.getElementById('mobile-news-fab');
+                
+                this.feedOpen = false;
+                
+                requestAnimationFrame(() => {
+                    feed.classList.remove('open');
+                    
+                    if (!this.isMobile) {
+                        mainContainer.classList.remove('news-open');
+                        const toggleIcon = document.querySelector('.news-toggle-icon');
+                        if (toggleIcon) {
+                            toggleIcon.textContent = '📰';
+                        }
+                    }
+                    
+                    if (this.isMobile) {
+                        if (mobileFab) {
+                            mobileFab.classList.remove('open');
+                        }
+                        
+                        this.removeCameraListeners();
+                        
+                        const fabIcon = document.querySelector('.mobile-news-fab-icon');
+                        if (fabIcon) {
+                            fabIcon.textContent = '📰';
+                        }
+                    }
+                });
+            }
+
+            toggleFeed() {
+                if (!this.feedEnabled) return;
+                
+                if (this.feedOpen) {
+                    this.closeFeed();
+                } else {
+                    this.openFeed();
+                }
+                
+                if (this.isMobile) {
+                    const mobileFab = document.getElementById('mobile-news-fab');
+                    
+                    if (mobileFab) {
+                        mobileFab.classList.toggle('open', this.feedOpen);
+                    }
+                    
+                    if (this.feedOpen) {
+                        this.newArticleCount = 0;
+                        const badge = document.getElementById('news-badge');
+                        if (badge) badge.classList.remove('show');
+                        
+                        setTimeout(() => {
+                            this.setupCameraTouchListener();
+                        }, 300);
+                    }
+                    
+                    const fabIcon = document.querySelector('.mobile-news-fab-icon');
+                    if (fabIcon) {
+                        fabIcon.textContent = this.feedOpen ? '✕' : '📰';
+                    }
+                }
+            }
+
+            setupFilters() {
+                document.querySelectorAll('.news-filter').forEach(filter => {
+                    filter.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        
+                        document.querySelectorAll('.news-filter').forEach(f => 
+                            f.classList.remove('active'));
+                        e.target.classList.add('active');
+                        this.currentFilter = e.target.dataset.category;
+                        this.renderFeed();
+                        
+                        if (this.isMobile) {
+                            const mobileContent = document.getElementById('mobile-news-content');
+                            if (mobileContent) {
+                                mobileContent.scrollTop = 0;
+                            }
+                        }
+                    });
+                });
+            }
+
+            renderFeed() {
+                if (this.isMobile) {
+                    this.renderMobileFeed();
+                } else {
+                    this.renderDesktopFeed();
+                }
+            }
+
+            renderDesktopFeed() {
+                const ticker = document.getElementById('news-ticker');
+                if (!ticker) return;
+                
+                ticker.innerHTML = '';
+
+                const sortedArticles = Array.from(this.articles.values())
+                    .filter(article => {
+                        if (this.currentFilter === 'all') return true;
+                        if (this.currentFilter === 'breaking') return article.is_breaking;
+                        return article.category?.toLowerCase() === this.currentFilter;
+                    })
+                    .sort((a, b) => new Date(b.published) - new Date(a.published));
+
+                if (sortedArticles.length === 0) {
+                    ticker.innerHTML = '<div style="text-align: center; opacity: 0.6; padding: 2rem;">Loading live news stream...</div>';
+                    return;
+                }
+
+                const fragment = document.createDocumentFragment();
+                
+                for (let i = 0; i < this.duplicateCount; i++) {
+                    sortedArticles.forEach(article => {
+                        fragment.appendChild(this.createDesktopNewsItem(article));
+                    });
+                }
+                
+                ticker.appendChild(fragment);
+                this.restartAutoScroll();
+            }
+
+            renderMobileFeed() {
+                const ticker = document.getElementById('mobile-news-ticker');
+                const mobileContent = document.getElementById('mobile-news-content');
+                if (!ticker) return;
+                
+                const fragment = document.createDocumentFragment();
+
+                const sortedArticles = Array.from(this.articles.values())
+                    .filter(article => {
+                        if (this.currentFilter === 'all') return true;
+                        if (this.currentFilter === 'breaking') return article.is_breaking;
+                        return article.category?.toLowerCase() === this.currentFilter;
+                    })
+                    .sort((a, b) => new Date(b.published) - new Date(a.published));
+
+                if (sortedArticles.length === 0) {
+                    ticker.innerHTML = '<div style="text-align: center; opacity: 0.6; padding: 2rem;">Loading news...</div>';
+                    return;
+                }
+
+                for (let i = 0; i < 2; i++) {
+                    sortedArticles.forEach(article => {
+                        fragment.appendChild(this.createMobileNewsCard(article));
+                    });
+                }
+                
+                ticker.innerHTML = '';
+                ticker.appendChild(fragment);
+                
+                if (mobileContent) {
+                    const ticker = document.getElementById('mobile-news-ticker');
+                    ticker.style.animation = 'none';
+                    ticker.offsetHeight;
+                    ticker.style.animation = '';
+                }
+            }
+
+            createMobileNewsCard(article) {
+                const card = document.createElement('div');
+                card.className = article.is_breaking ? 'mobile-news-card breaking' : 'mobile-news-card';
+                
+                const time = new Date(article.published).toLocaleTimeString('en-US', {
+                    hour: 'numeric',
+                    minute: '2-digit'
+                });
+
+                card.innerHTML = `
+                    ${article.is_breaking ? '<div style="display: inline-block; padding: 2px 6px; background: rgba(255, 59, 48, 0.9); color: white; font-size: 0.55rem; font-weight: 700; border-radius: 4px; margin-bottom: 0.3rem;">BREAKING</div>' : ''}
+                    <div style="font-size: 0.85rem; font-weight: 600; color: white; margin-bottom: 0.3rem; line-height: 1.2;">${article.title.substring(0, 80)}${article.title.length > 80 ? '...' : ''}</div>
+                    <div style="display: flex; gap: 0.4rem; font-size: 0.65rem; color: rgba(255, 255, 255, 0.7); margin-bottom: 0.3rem;">
+                        <span style="color: #a78bfa; font-weight: 500;">${article.category || 'General'}</span>
+                        <span>•</span>
+                        <span>${time}</span>
+                    </div>
+                    <div style="font-size: 0.7rem; color: rgba(255, 255, 255, 0.85); line-height: 1.3;">${(article.summary || '').substring(0, 100)}...</div>
+                `;
+
+                card.onclick = () => {
+                    if (article.url === '#') {
+                        const originalBg = card.style.background;
+                        card.style.background = 'rgba(139, 92, 246, 0.2)';
+                        setTimeout(() => {
+                            card.style.background = originalBg;
+                        }, 300);
+                        return;
+                    }
+                    
+                    if (article.url && article.url.startsWith('http')) {
+                        window.open(article.url, '_blank');
+                    }
+                };
+                
+                return card;
+            }
+
+            createDesktopNewsItem(article) {
+                const item = document.createElement('div');
+                item.className = article.is_breaking ? 'news-item breaking' : 'news-item';
+                
+                const time = new Date(article.published).toLocaleTimeString('en-US', {
+                    hour: 'numeric',
+                    minute: '2-digit'
+                });
+
+                item.innerHTML = `
+                    ${article.is_breaking ? '<div style="display: inline-block; padding: 0.2rem 0.5rem; background: rgba(255, 59, 48, 0.8); color: white; font-size: 0.65rem; font-weight: 700; border-radius: 5px; margin-bottom: 0.5rem;">BREAKING</div>' : ''}
+                    <div class="news-item-title">${article.title}</div>
+                    <div class="news-item-meta">
+                        <span class="news-item-category">${article.category || 'General'}</span>
+                        <span>${time}</span>
+                        <span>${article.source_name || 'News Source'}</span>
+                    </div>
+                    <div class="news-item-summary">${article.summary || ''}</div>
+                `;
+
+                item.onclick = () => {
+                    if (article.url === '#') {
+                        const originalBg = item.style.background;
+                        item.style.background = 'rgba(139, 92, 246, 0.15)';
+                        setTimeout(() => {
+                            item.style.background = originalBg;
+                        }, 300);
+                        return;
+                    }
+                    
+                    if (article.url && article.url.startsWith('http')) {
+                        window.open(article.url, '_blank');
+                    }
+                };
+                
+                return item;
+            }
+
+            deactivate() {
+                this.wasOpenBeforeStop = this.feedOpen;
+                this.feedEnabled = false;
+                
+                if (this.ws) {
+                    this.ws.close();
+                    this.ws = null;
+                }
+                
+                if (this.pollingInterval) {
+                    clearInterval(this.pollingInterval);
+                    this.pollingInterval = null;
+                }
+                
+                if (this.feedOpen) {
+                    this.closeFeed();
+                }
+                
+                const feedContainer = document.getElementById('news-feed');
+                const mobileFab = document.getElementById('mobile-news-fab');
+                
+                setTimeout(() => {
+                    feedContainer.classList.remove('enabled');
+                    if (mobileFab) mobileFab.classList.remove('enabled');
+                }, 300);
+                
+                if (this.isMobile) {
+                    this.removeCameraListeners();
+                }
+                
+                this.articles.clear();
+                this.newArticleCount = 0;
+            }
+        }
+
+        // Initialize global instances
+        let newsFeed = null;
+        let visionAnalyzer = null;
+        let cameraStream = null;
+        let isActive = false;
+        
+        // Initialize on DOM load
+        document.addEventListener('DOMContentLoaded', () => {
+            newsFeed = new NewsFeedManager();
+            visionAnalyzer = new VisionAnalyzer();
+            
+            // Log platform info if Capacitor
+            if (isCapacitor) {
+                console.log('Running on Capacitor:', window.Capacitor.getPlatform());
+            }
+            
+            // Handle resize events with debouncing
+            let resizeTimeout;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(() => {
+                    const wasMobile = newsFeed.isMobile;
+                    newsFeed.isMobile = window.innerWidth <= 768;
+                    
+                    if (wasMobile !== newsFeed.isMobile && newsFeed.feedEnabled) {
+                        newsFeed.renderFeed();
+                        if (!newsFeed.isMobile) {
+                            newsFeed.setupDesktopAutoScroll();
+                        } else {
+                            newsFeed.setupMobileGestures();
+                            newsFeed.setupCameraTouchListener();
+                        }
+                    }
+                }, 250);
+            });
+        });
+
+        // Global functions
+        function toggleNewsFeed() {
+            if (newsFeed) newsFeed.toggleFeed();
+        }
+
+        async function startCamera() {
+            try {
+                // Request permissions explicitly for Capacitor apps
+                if (isCapacitor) {
+                    console.log('Requesting camera permissions for Capacitor app...');
+                    
+                    // Check current permission state
+                    try {
+                        const result = await navigator.permissions.query({ name: 'camera' });
+                        console.log('Camera permission state:', result.state);
+                        
+                        if (result.state === 'denied') {
+                            alert('Camera permission denied.\n\nPlease enable camera access:\n\n' +
+                                  (isIOS ? '1. Open iPhone Settings\n2. Scroll to Euphorie\n3. Enable Camera\n4. Restart the app' :
+                                   '1. Open Android Settings\n2. Go to Apps → Euphorie\n3. Permissions → Camera\n4. Allow\n5. Restart the app'));
+                            return;
+                        }
+                    } catch (permError) {
+                        console.log('Permission query not supported, continuing...', permError);
+                    }
+                }
+                
+                const constraints = {
+                    video: { 
+                        facingMode: 'environment',
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    }
+                };
+                
+                console.log('Requesting camera with constraints:', constraints);
+                cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+                console.log('Camera stream obtained successfully!');
+                
+                const video = document.getElementById('camera-video');
+                const placeholder = document.getElementById('camera-placeholder');
+                const controls = document.getElementById('controls-overlay');
+                const chat = document.getElementById('chat-overlay');
+                
+                video.srcObject = cameraStream;
+                video.style.display = 'block';
+                placeholder.style.display = 'none';
+                controls.classList.add('show');
+                chat.classList.add('show');
+                
+                isActive = true;
+                
+                // Activate news feed
+                if (newsFeed) {
+                    newsFeed.activate();
+                }
+                
+                // Auto-start vision analysis after a short delay
+                setTimeout(() => {
+                    if (visionAnalyzer && isActive) {
+                        visionAnalyzer.startAnalysis();
+                        
+                        const messageEl = document.getElementById('ai-message');
+                        if (messageEl) {
+                            messageEl.textContent = 'AI Vision is monitoring your workspace...';
+                            
+                            setTimeout(() => {
+                                messageEl.textContent = 'Point camera at code, documents, or objects for AI insights...';
+                            }, 4000);
+                        }
+                    }
+                }, 1500);
+                
+            } catch (error) {
+                console.error('Camera failed:', error);
+                
+                // Better error messages for mobile apps
+                if (isCapacitor) {
+                    let errorMessage = 'Camera access failed.\n\n';
+                    
+                    if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+                        errorMessage += 'Camera permission was denied.\n\n';
+                        if (isIOS) {
+                            errorMessage += 'To enable:\n1. Open iPhone Settings\n2. Scroll down to Euphorie\n3. Enable Camera\n4. Restart the app';
+                        } else if (isAndroid) {
+                            errorMessage += 'To enable:\n1. Open Android Settings\n2. Go to Apps → Euphorie\n3. Tap Permissions\n4. Enable Camera\n5. Restart the app';
+                        }
+                    } else if (error.name === 'NotFoundError') {
+                        errorMessage += 'No camera found on this device.';
+                    } else {
+                        errorMessage += 'Error: ' + error.message + '\n\nPlease check your device settings and try again.';
+                    }
+                    
+                    alert(errorMessage);
+                } else {
+                    // Browser error
+                    alert('Camera access denied or not available.\n\nPlease check your browser settings and ensure:\n• Camera permissions are granted\n• No other app is using the camera\n• You\'re using HTTPS');
+                }
+            }
+        }
+        
+        function stopCamera() {
+            // Stop vision analysis
+            if (visionAnalyzer) {
+                visionAnalyzer.stopAnalysis();
+            }
+            
+            // Stop camera stream
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+            }
+            
+            const video = document.getElementById('camera-video');
+            const placeholder = document.getElementById('camera-placeholder');
+            const controls = document.getElementById('controls-overlay');
+            const chat = document.getElementById('chat-overlay');
+            const mainContainer = document.getElementById('main-container');
+            const visionStatus = document.getElementById('vision-status');
+            const objectsOverlay = document.getElementById('objects-overlay');
+            const suggestionsPanel = document.getElementById('suggestions-panel');
+            
+            video.style.display = 'none';
+            placeholder.style.display = 'flex';
+            controls.classList.remove('show');
+            chat.classList.remove('show');
+            
+            if (visionStatus) visionStatus.classList.remove('show');
+            if (objectsOverlay) objectsOverlay.classList.remove('show');
+            if (suggestionsPanel) suggestionsPanel.classList.remove('show');
+            
+            mainContainer.classList.remove('news-open');
+            
+            isActive = false;
+            
+            // Deactivate news feed
+            if (newsFeed) {
+                newsFeed.deactivate();
+            }
+        }
+
+    </script>
+</body>
+</html>
