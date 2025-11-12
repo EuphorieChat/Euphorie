@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="viewport-fit=cover, width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
-    <title>Euphorie</title>
+    <title>Euphorie AI - Ultimate Full Edition</title>
     
     <!-- Cache Control -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -440,8 +440,8 @@
                 position: fixed;
                 bottom: 24px;
                 right: 24px;
-                width: 64px;
-                height: 64px;
+                width: 56px;
+                height: 56px;
                 background: linear-gradient(135deg, #8b5cf6, #3b82f6);
                 border-radius: 32px;
                 display: flex;
@@ -449,7 +449,7 @@
                 justify-content: center;
                 box-shadow: 0 8px 24px rgba(139, 92, 246, 0.5);
                 cursor: pointer;
-                z-index: 1999;
+                z-index: 250;
                 opacity: 0;
                 visibility: hidden;
                 transform: scale(0) rotate(-180deg);
@@ -837,7 +837,175 @@
         }
 
         /* ============================================
-           AR CONTROLS
+           HAMBURGER MENU - MOBILE ONLY
+        ============================================ */
+
+        .hamburger-btn {
+            position: fixed;
+            top: calc(1rem + env(safe-area-inset-top));
+            right: calc(1rem + env(safe-area-inset-right));
+            width: 56px;
+            height: 56px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(139, 92, 246, 0.5);
+            border-radius: 50%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 300;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .hamburger-btn.show {
+            display: flex;
+        }
+
+        .hamburger-btn:active {
+            transform: scale(0.95);
+            background: rgba(139, 92, 246, 0.3);
+        }
+
+        .hamburger-icon {
+            width: 24px;
+            height: 20px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: transform 0.3s ease;
+        }
+
+        .hamburger-icon span {
+            width: 100%;
+            height: 3px;
+            background: white;
+            border-radius: 2px;
+            transition: all 0.3s ease;
+        }
+
+        .hamburger-btn.active .hamburger-icon span:nth-child(1) {
+            transform: translateY(8.5px) rotate(45deg);
+        }
+
+        .hamburger-btn.active .hamburger-icon span:nth-child(2) {
+            opacity: 0;
+        }
+
+        .hamburger-btn.active .hamburger-icon span:nth-child(3) {
+            transform: translateY(-8.5px) rotate(-45deg);
+        }
+
+        .menu-panel {
+            position: fixed;
+            top: 0;
+            right: -100%;
+            width: 280px;
+            height: 100vh;
+            background: linear-gradient(180deg, rgba(0, 0, 0, 0.98), rgba(20, 10, 40, 0.98));
+            backdrop-filter: blur(20px);
+            border-left: 2px solid rgba(139, 92, 246, 0.5);
+            padding: calc(80px + env(safe-area-inset-top)) 1.5rem 2rem;
+            z-index: 299;
+            transition: right 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            box-shadow: -10px 0 40px rgba(0, 0, 0, 0.5);
+            overflow-y: auto;
+        }
+
+        .menu-panel.open {
+            right: 0;
+        }
+
+        .menu-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 298;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .menu-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .menu-section {
+            margin-bottom: 2rem;
+        }
+
+        .menu-section-title {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 0.8rem;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .menu-item:active {
+            transform: scale(0.98);
+            background: rgba(139, 92, 246, 0.2);
+            border-color: rgba(139, 92, 246, 0.5);
+        }
+
+        .menu-item.active {
+            background: rgba(139, 92, 246, 0.2);
+            border-color: rgba(139, 92, 246, 0.6);
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+        }
+
+        .menu-item-icon {
+            font-size: 1.5rem;
+            width: 40px;
+            text-align: center;
+        }
+
+        .menu-item-content {
+            flex: 1;
+        }
+
+        .menu-item-label {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 0.2rem;
+        }
+
+        .menu-item-desc {
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        @media (min-width: 769px) {
+            .hamburger-btn,
+            .menu-panel,
+            .menu-overlay {
+                display: none !important;
+            }
+        }
+
+        /* ============================================
+           AR CONTROLS (Desktop Only)
         ============================================ */
 
         .controls-overlay {
@@ -857,12 +1025,7 @@
 
         @media (max-width: 768px) {
             .controls-overlay {
-                top: auto;
-                bottom: calc(1rem + env(safe-area-inset-bottom));
-                left: 1rem;
-                right: 1rem;
-                flex-direction: row;
-                justify-content: center;
+                display: none !important;
             }
         }
 
@@ -895,13 +1058,6 @@
                 padding: 0.6rem 1rem;
                 font-size: 0.9rem;
                 border-radius: 10px;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .control-btn {
-                padding: 0.5rem 0.7rem;
-                font-size: 0.75rem;
             }
         }
 
@@ -1224,6 +1380,82 @@
     </style>
 </head>
 <body>
+    <!-- Hamburger Menu Button (Mobile Only) -->
+    <div id="hamburger-btn" class="hamburger-btn" onclick="toggleMenu()">
+        <div class="hamburger-icon">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+    </div>
+
+    <!-- Menu Overlay -->
+    <div id="menu-overlay" class="menu-overlay" onclick="toggleMenu()"></div>
+
+    <!-- Menu Panel (Mobile Only) -->
+    <div id="menu-panel" class="menu-panel">
+        <div class="menu-section">
+            <div class="menu-section-title">AR Modes</div>
+            <div class="menu-item" onclick="toggleMode('detect'); closeMenu();" id="menu-detect">
+                <div class="menu-item-icon">🎯</div>
+                <div class="menu-item-content">
+                    <div class="menu-item-label">Object Detection</div>
+                    <div class="menu-item-desc">Identify objects in real-time</div>
+                </div>
+            </div>
+            <div class="menu-item" onclick="toggleMode('measure'); closeMenu();" id="menu-measure">
+                <div class="menu-item-icon">📏</div>
+                <div class="menu-item-content">
+                    <div class="menu-item-label">Measurement</div>
+                    <div class="menu-item-desc">Measure distances between points</div>
+                </div>
+            </div>
+            <div class="menu-item" onclick="toggleMode('3d'); closeMenu();" id="menu-3d">
+                <div class="menu-item-icon">🎨</div>
+                <div class="menu-item-content">
+                    <div class="menu-item-label">3D Objects</div>
+                    <div class="menu-item-desc">Place virtual 3D objects</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="menu-section">
+            <div class="menu-section-title">Controls</div>
+            <div class="menu-item" onclick="toggleVoice(); closeMenu();" id="menu-voice">
+                <div class="menu-item-icon">🎤</div>
+                <div class="menu-item-content">
+                    <div class="menu-item-label">Voice Control</div>
+                    <div class="menu-item-desc">Hands-free voice commands</div>
+                </div>
+            </div>
+            <div class="menu-item" onclick="captureScreenshot(); closeMenu();">
+                <div class="menu-item-icon">📸</div>
+                <div class="menu-item-content">
+                    <div class="menu-item-label">Take Photo</div>
+                    <div class="menu-item-desc">Capture AR screenshot</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="menu-section">
+            <div class="menu-section-title">System</div>
+            <div class="menu-item" onclick="showHelp(); closeMenu();">
+                <div class="menu-item-icon">❓</div>
+                <div class="menu-item-content">
+                    <div class="menu-item-label">Help</div>
+                    <div class="menu-item-desc">View voice commands & info</div>
+                </div>
+            </div>
+            <div class="menu-item" onclick="stopSystem(); closeMenu();">
+                <div class="menu-item-icon">❌</div>
+                <div class="menu-item-content">
+                    <div class="menu-item-label">Stop System</div>
+                    <div class="menu-item-desc">End AR session</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Mobile News FAB -->
     <div id="mobile-news-fab" class="mobile-news-fab" onclick="toggleNewsFeed()">
         <span class="mobile-news-fab-icon">📰</span>
@@ -1289,13 +1521,13 @@
             <div id="camera-placeholder" class="camera-placeholder">
                 <div class="placeholder-title">
                     <img src="./logo.png" alt="Euphorie Logo" class="placeholder-logo" onerror="this.style.display='none'">
-                    <span class="placeholder-title-text">Euphorie</span>
+                    <span class="placeholder-title-text">Euphorie AI Ultimate</span>
                 </div>
                 <div class="placeholder-subtitle">
                     AR • Voice • 3D • Vision AI • Live News • Measurements
                 </div>
                 <button class="start-button" onclick="startSystem()">
-                    Initialize
+                    🚀 Initialize System
                 </button>
             </div>
             
@@ -1394,6 +1626,7 @@
             // System state
             active: false,
             mode: 'detect', // detect, measure, 3d
+            menuOpen: false,
             
             // Camera
             cameraStream: null,
@@ -1447,6 +1680,30 @@
         };
 
         // ============================================
+        // HAMBURGER MENU FUNCTIONS
+        // ============================================
+
+        function toggleMenu() {
+            globalState.menuOpen = !globalState.menuOpen;
+            
+            const btn = document.getElementById('hamburger-btn');
+            const panel = document.getElementById('menu-panel');
+            const overlay = document.getElementById('menu-overlay');
+            
+            if (btn) btn.classList.toggle('active', globalState.menuOpen);
+            if (panel) panel.classList.toggle('open', globalState.menuOpen);
+            if (overlay) overlay.classList.toggle('show', globalState.menuOpen);
+            
+            console.log('📱 Menu:', globalState.menuOpen ? 'OPEN' : 'CLOSED');
+        }
+
+        function closeMenu() {
+            if (globalState.menuOpen) {
+                toggleMenu();
+            }
+        }
+
+        // ============================================
         // SYSTEM INITIALIZATION
         // ============================================
 
@@ -1489,7 +1746,16 @@
                 video.style.display = 'block';
                 
                 document.getElementById('camera-placeholder').style.display = 'none';
-                document.getElementById('controls-overlay').classList.add('show');
+                
+                // Show appropriate controls based on device
+                const isMobile = window.innerWidth <= 768;
+                if (isMobile) {
+                    document.getElementById('hamburger-btn').classList.add('show');
+                    document.getElementById('mobile-news-fab').classList.add('enabled');
+                } else {
+                    document.getElementById('controls-overlay').classList.add('show');
+                }
+                
                 document.getElementById('chat-overlay').classList.add('show');
                 
                 // Initialize all systems
@@ -1831,10 +2097,12 @@
             globalState.voice.enabled = !globalState.voice.enabled;
             
             const btn = document.getElementById('btn-voice');
+            const menuItem = document.getElementById('menu-voice');
             const status = document.getElementById('voice-status');
             
             if (globalState.voice.enabled) {
-                btn.classList.add('active');
+                if (btn) btn.classList.add('active');
+                if (menuItem) menuItem.classList.add('active');
                 status.classList.add('show', 'listening');
                 
                 if (globalState.voice.recognition) {
@@ -1843,7 +2111,8 @@
                     speak("Voice control enabled");
                 }
             } else {
-                btn.classList.remove('active');
+                if (btn) btn.classList.remove('active');
+                if (menuItem) menuItem.classList.remove('active');
                 status.classList.remove('show', 'listening');
                 
                 if (globalState.voice.recognition) {
@@ -1917,10 +2186,21 @@
         function toggleMode(mode) {
             globalState.mode = mode;
             
-            // Update button states
+            // Update all button states
             document.querySelectorAll('.control-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
+            
+            // Update menu items
+            document.querySelectorAll('.menu-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            const menuItem = document.getElementById(`menu-${mode}`);
+            if (menuItem) menuItem.classList.add('active');
+            
+            const desktopBtn = document.getElementById(`btn-${mode}`);
+            if (desktopBtn) desktopBtn.classList.add('active');
             
             const modeIndicator = document.getElementById('ar-mode-indicator');
             
@@ -2485,6 +2765,7 @@
             document.getElementById('camera-video').style.display = 'none';
             document.getElementById('camera-placeholder').style.display = 'flex';
             document.getElementById('controls-overlay').classList.remove('show');
+            document.getElementById('hamburger-btn').classList.remove('show');
             document.getElementById('voice-status').classList.remove('show');
             document.getElementById('chat-overlay').classList.remove('show');
             
@@ -2494,6 +2775,7 @@
             const mobileFab = document.getElementById('mobile-news-fab');
             
             if (globalState.news.open) toggleNewsFeed();
+            if (globalState.menuOpen) closeMenu();
             
             setTimeout(() => {
                 feedContainer.classList.remove('enabled');
