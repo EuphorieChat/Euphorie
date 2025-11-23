@@ -1,322 +1,382 @@
-// lib/services/auth_service.dart
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+import 'package:flutter_appauth/flutter_appauth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:jwt_decoder/jwt_decoder.dart';
-import 'package:dio/dio.dart';
 import 'dart:convert';
-import 'dart:math';
-import 'package:crypto/crypto.dart';
+import 'package:http/http.dart' as http;
 
 class AuthService extends ChangeNotifier {
-  // 🔐 Secure storage for tokens
-  final _storage = const FlutterSecureStorage();
-  final _dio = Dio();
+  // ============================================
+  // CONFIGURATION
+  // ============================================
   
-  // 🌐 Backend URL - UPDATE THIS!
-  static const String _baseUrl = 'http://localhost:8000';  // Change to your backend URL
+  // Google OAuth Configuration
+  static const String _googleClientIdIOS = '271690446038-a1c3v0vcc9qk6sdjn5jmgeir3n6256m8.apps.googleusercontent.com';
+  static const String _googleClientIdAndroid = '271690446038-a1c3v0vcc9qk6sdjn5jmgeir3n6256m8.apps.googleusercontent.com'; // Update if different
+  
+  // Microsoft OAuth Configuration
+  static const String _microsoftClientId = 'f8d15ce5-2c27-41cf-a8db-1e7c84ec0c11';
+  static const String _microsoftTenantId = '49a31049-7b61-4fae-bce8-5e9a2ce13434';
+  static const String _microsoftRedirectUri = 'msauth.com.euphorie.app://auth';
+  static const String _microsoftAuthorizationEndpoint = 
+      'https://login.microsoftonline.com/$_microsoftTenantId/oauth2/v2.0/authorize';
+  static const String _microsoftTokenEndpoint = 
+      'https://login.microsoftonline.com/$_microsoftTenantId/oauth2/v2.0/token';
+  static const List<String> _microsoftScopes = [
+    'openid',
+    'profile',
+    'email',
+    'offline_access',
+    'User.Read',
+  ];
+  
+  // Backend API (optional - for user profile storage)
+  static const String _backendUrl = 'https://euphorie.com';
   
   final GoogleSignIn _googleSignIn = GoogleSignIn(
+    clientId: defaultTargetPlatform == TargetPlatform.iOS 
+        ? _googleClientIdIOS 
+        : _googleClientIdAndroid,
     scopes: ['email', 'profile'],
   );
   
-  // User state
+  final FlutterAppAuth _appAuth = const FlutterAppAuth();
+  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
+
   Map<String, dynamic>? _user;
-  String? _accessToken;
-  String? _refreshToken;
   bool _isLoading = false;
   String? _errorMessage;
+  String? _authProvider; // 'google', 'apple', 'microsoft'
 
-  // Getters
   Map<String, dynamic>? get user => _user;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
-  bool get isAuthenticated => _user != null && _accessToken != null;
-  String? get accessToken => _accessToken;
+  bool get isAuthenticated => _user != null;
+  String? get authProvider => _authProvider;
 
   AuthService() {
-    _initializeDio();
-    _loadSavedAuth();
+    _loadUserFromStorage();
   }
 
-  // Configure Dio with interceptors
-  void _initializeDio() {
-    _dio.options.baseUrl = _baseUrl;
-    _dio.options.connectTimeout = const Duration(seconds: 10);
-    _dio.options.receiveTimeout = const Duration(seconds: 10);
-    
-    // Add interceptor for auth token
-    _dio.interceptors.add(
-      InterceptorsWrapper(
-        onRequest: (options, handler) {
-          if (_accessToken != null) {
-            options.headers['Authorization'] = 'Bearer $_accessToken';
-          }
-          return handler.next(options);
-        },
-        onError: (error, handler) async {
-          // Auto-refresh token on 401
-          if (error.response?.statusCode == 401 && _refreshToken != null) {
-            try {
-              await _refreshAccessToken();
-              // Retry the request
-              final opts = Options(
-                method: error.requestOptions.method,
-                headers: error.requestOptions.headers,
-              );
-              final response = await _dio.request(
-                error.requestOptions.path,
-                options: opts,
-                data: error.requestOptions.data,
-                queryParameters: error.requestOptions.queryParameters,
-              );
-              return handler.resolve(response);
-            } catch (e) {
-              return handler.next(error);
-            }
-          }
-          return handler.next(error);
-        },
-      ),
-    );
-  }
-
-  // Load saved authentication
-  Future<void> _loadSavedAuth() async {
+  Future<void> _loadUserFromStorage() async {
     try {
-      _accessToken = await _storage.read(key: 'access_token');
-      _refreshToken = await _storage.read(key: 'refresh_token');
-      final userJson = await _storage.read(key: 'user');
+      final prefs = await SharedPreferences.getInstance();
+      final userData = prefs.getString('user_data');
+      final provider = prefs.getString('auth_provider');
       
-      if (_accessToken != null && userJson != null) {
-        _user = jsonDecode(userJson);
-        
-        // Check if token is expired
-        if (JwtDecoder.isExpired(_accessToken!)) {
-          await _refreshAccessToken();
-        }
-        
+      if (userData != null) {
+        _user = jsonDecode(userData);
+        _authProvider = provider;
         notifyListeners();
-        debugPrint('✅ Auth loaded from storage: ${_user?['email']}');
+        debugPrint('✅ Loaded user from storage: ${_user?['email']}');
       }
     } catch (e) {
-      debugPrint('⚠️ Error loading saved auth: $e');
-      await _clearAuth();
+      debugPrint('⚠️ Error loading user from storage: $e');
     }
   }
 
-  // Save authentication
-  Future<void> _saveAuth({
-    required String accessToken,
-    required String refreshToken,
-    required Map<String, dynamic> user,
-  }) async {
-    _accessToken = accessToken;
-    _refreshToken = refreshToken;
-    _user = user;
-    
-    await _storage.write(key: 'access_token', value: accessToken);
-    await _storage.write(key: 'refresh_token', value: refreshToken);
-    await _storage.write(key: 'user', value: jsonEncode(user));
-    
-    notifyListeners();
-  }
-
-  // Clear authentication
-  Future<void> _clearAuth() async {
-    _accessToken = null;
-    _refreshToken = null;
-    _user = null;
-    
-    await _storage.deleteAll();
-    notifyListeners();
-  }
-
-  // Refresh access token
-  Future<void> _refreshAccessToken() async {
+  Future<void> _saveUserToStorage(Map<String, dynamic> userData, String provider) async {
     try {
-      final response = await _dio.post(
-        '/api/auth/refresh/',
-        data: {'refresh': _refreshToken},
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('user_data', jsonEncode(userData));
+      await prefs.setString('auth_provider', provider);
+      
+      _user = userData;
+      _authProvider = provider;
+      
+      // Optional: Save to backend
+      await _syncUserToBackend(userData);
+      
+      debugPrint('✅ User saved to storage');
+    } catch (e) {
+      debugPrint('⚠️ Error saving user to storage: $e');
+    }
+  }
+
+  Future<void> _syncUserToBackend(Map<String, dynamic> userData) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_backendUrl/api/auth/sync'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(userData),
       );
       
-      _accessToken = response.data['access'];
-      await _storage.write(key: 'access_token', value: _accessToken!);
-      
-      debugPrint('✅ Token refreshed');
+      if (response.statusCode == 200) {
+        debugPrint('✅ User synced to backend');
+      }
     } catch (e) {
-      debugPrint('❌ Token refresh failed: $e');
-      await _clearAuth();
-      rethrow;
+      debugPrint('⚠️ Backend sync failed (continuing anyway): $e');
     }
   }
 
-  // Set loading state
-  void _setLoading(bool value) {
-    _isLoading = value;
+  void _setLoading(bool loading) {
+    _isLoading = loading;
     notifyListeners();
   }
 
-  // Set error
-  void _setError(String message) {
-    _errorMessage = message;
-    debugPrint('❌ Auth Error: $message');
+  void _setError(String? error) {
+    _errorMessage = error;
     notifyListeners();
   }
 
-  // Clear error
   void clearError() {
     _errorMessage = null;
     notifyListeners();
   }
 
-  // 📧 Register with Email/Password
-  Future<bool> register({
+  // ============================================
+  // EMAIL & PASSWORD AUTHENTICATION
+  // ============================================
+
+  Future<bool> registerWithEmail({
     required String email,
     required String password,
-    String? firstName,
-    String? lastName,
+    String? displayName,
   }) async {
     try {
       _setLoading(true);
-      clearError();
-      
-      final response = await _dio.post(
-        '/api/auth/register/',
-        data: {
+      _setError(null);
+
+      debugPrint('🔐 Registering user with email: $email');
+
+      // Send registration request to your Django backend
+      final response = await http.post(
+        Uri.parse('$_backendUrl/api/auth/register'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
           'email': email,
           'password': password,
-          'first_name': firstName ?? '',
-          'last_name': lastName ?? '',
-        },
+          'display_name': displayName,
+        }),
       );
-      
-      await _saveAuth(
-        accessToken: response.data['access'],
-        refreshToken: response.data['refresh'],
-        user: response.data['user'],
-      );
-      
-      debugPrint('✅ Registration successful: $email');
-      _setLoading(false);
-      return true;
-      
-    } on DioException catch (e) {
-      _setError(e.response?.data['error'] ?? 'Registration failed');
-      _setLoading(false);
-      return false;
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        
+        debugPrint('✅ Registration successful');
+
+        // Create user data
+        final userData = {
+          'id': data['user_id'] ?? data['id'],
+          'email': email,
+          'displayName': displayName ?? email.split('@')[0],
+          'accessToken': data['access_token'],
+          'refreshToken': data['refresh_token'],
+          'provider': 'email',
+        };
+
+        // Store tokens securely
+        if (data['access_token'] != null) {
+          await _secureStorage.write(
+            key: 'email_access_token',
+            value: data['access_token'],
+          );
+        }
+        if (data['refresh_token'] != null) {
+          await _secureStorage.write(
+            key: 'email_refresh_token',
+            value: data['refresh_token'],
+          );
+        }
+
+        await _saveUserToStorage(userData, 'email');
+        notifyListeners();
+
+        return true;
+      } else {
+        final errorData = jsonDecode(response.body);
+        final errorMessage = errorData['message'] ?? errorData['error'] ?? 'Registration failed';
+        
+        debugPrint('❌ Registration failed: $errorMessage');
+        _setError(errorMessage);
+        return false;
+      }
     } catch (e) {
-      _setError('Registration failed: $e');
-      _setLoading(false);
+      debugPrint('❌ Registration error: $e');
+      
+      if (e.toString().contains('SocketException') || e.toString().contains('Connection')) {
+        _setError('Cannot connect to server. Please check your internet connection.');
+      } else {
+        _setError('Registration failed. Please try again.');
+      }
+      
       return false;
+    } finally {
+      _setLoading(false);
     }
   }
 
-  // 🔑 Login with Email/Password
-  Future<bool> login({
+  Future<bool> signInWithEmail({
     required String email,
     required String password,
   }) async {
     try {
       _setLoading(true);
-      clearError();
-      
-      final response = await _dio.post(
-        '/api/auth/login/',
-        data: {
+      _setError(null);
+
+      debugPrint('🔐 Signing in with email: $email');
+
+      // Send login request to your Django backend
+      final response = await http.post(
+        Uri.parse('$_backendUrl/api/auth/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
           'email': email,
           'password': password,
-        },
+        }),
       );
-      
-      await _saveAuth(
-        accessToken: response.data['access'],
-        refreshToken: response.data['refresh'],
-        user: response.data['user'],
-      );
-      
-      debugPrint('✅ Login successful: $email');
-      _setLoading(false);
-      return true;
-      
-    } on DioException catch (e) {
-      _setError(e.response?.data['error'] ?? 'Login failed');
-      _setLoading(false);
-      return false;
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        
+        debugPrint('✅ Sign-in successful');
+
+        // Create user data
+        final userData = {
+          'id': data['user_id'] ?? data['id'],
+          'email': email,
+          'displayName': data['display_name'] ?? data['name'] ?? email.split('@')[0],
+          'photoURL': data['photo_url'],
+          'accessToken': data['access_token'],
+          'refreshToken': data['refresh_token'],
+          'provider': 'email',
+        };
+
+        // Store tokens securely
+        if (data['access_token'] != null) {
+          await _secureStorage.write(
+            key: 'email_access_token',
+            value: data['access_token'],
+          );
+        }
+        if (data['refresh_token'] != null) {
+          await _secureStorage.write(
+            key: 'email_refresh_token',
+            value: data['refresh_token'],
+          );
+        }
+
+        await _saveUserToStorage(userData, 'email');
+        notifyListeners();
+
+        return true;
+      } else {
+        final errorData = jsonDecode(response.body);
+        final errorMessage = errorData['message'] ?? errorData['error'] ?? 'Invalid credentials';
+        
+        debugPrint('❌ Sign-in failed: $errorMessage');
+        
+        if (errorMessage.contains('credentials') || errorMessage.contains('password')) {
+          _setError('Invalid email or password');
+        } else {
+          _setError(errorMessage);
+        }
+        
+        return false;
+      }
     } catch (e) {
-      _setError('Login failed: $e');
-      _setLoading(false);
+      debugPrint('❌ Sign-in error: $e');
+      
+      if (e.toString().contains('SocketException') || e.toString().contains('Connection')) {
+        _setError('Cannot connect to server. Please check your internet connection.');
+      } else {
+        _setError('Sign-in failed. Please try again.');
+      }
+      
       return false;
+    } finally {
+      _setLoading(false);
     }
   }
 
-  // 🍎 Sign in with Apple
-  Future<bool> signInWithApple() async {
+  // ============================================
+  // PASSWORD RESET
+  // ============================================
+
+  Future<bool> sendPasswordResetEmail(String email) async {
     try {
       _setLoading(true);
-      clearError();
-      
-      // Generate nonce
-      final rawNonce = _generateNonce();
-      final nonce = _sha256ofString(rawNonce);
+      _setError(null);
 
-      // Request credential
-      final appleCredential = await SignInWithApple.getAppleIDCredential(
-        scopes: [
-          AppleIDAuthorizationScopes.email,
-          AppleIDAuthorizationScopes.fullName,
-        ],
-        nonce: nonce,
+      debugPrint('📧 Sending password reset email to: $email');
+
+      final response = await http.post(
+        Uri.parse('$_backendUrl/api/auth/reset-password'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email}),
       );
 
-      // Send to backend
-      final response = await _dio.post(
-        '/api/auth/apple/',
-        data: {
-          'id_token': appleCredential.identityToken,
-          'first_name': appleCredential.givenName ?? '',
-          'last_name': appleCredential.familyName ?? '',
-        },
-      );
-      
-      await _saveAuth(
-        accessToken: response.data['access'],
-        refreshToken: response.data['refresh'],
-        user: response.data['user'],
-      );
-      
-      debugPrint('✅ Apple Sign In successful');
-      _setLoading(false);
-      return true;
-      
-    } on SignInWithAppleAuthorizationException catch (e) {
-      _setError('Apple Sign In cancelled: ${e.message}');
-      _setLoading(false);
-      return false;
-    } on DioException catch (e) {
-      _setError(e.response?.data['error'] ?? 'Apple Sign In failed');
-      _setLoading(false);
-      return false;
+      if (response.statusCode == 200) {
+        debugPrint('✅ Password reset email sent');
+        return true;
+      } else {
+        final errorData = jsonDecode(response.body);
+        _setError(errorData['message'] ?? 'Failed to send reset email');
+        return false;
+      }
     } catch (e) {
-      _setError('Apple Sign In failed: $e');
-      _setLoading(false);
+      debugPrint('❌ Password reset error: $e');
+      _setError('Failed to send reset email. Please try again.');
       return false;
+    } finally {
+      _setLoading(false);
     }
   }
 
-  // 🔵 Sign in with Google
+  Future<bool> resetPassword({
+    required String token,
+    required String newPassword,
+  }) async {
+    try {
+      _setLoading(true);
+      _setError(null);
+
+      debugPrint('🔑 Resetting password with token');
+
+      final response = await http.post(
+        Uri.parse('$_backendUrl/api/auth/reset-password/confirm'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'token': token,
+          'new_password': newPassword,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        debugPrint('✅ Password reset successful');
+        return true;
+      } else {
+        final errorData = jsonDecode(response.body);
+        _setError(errorData['message'] ?? 'Password reset failed');
+        return false;
+      }
+    } catch (e) {
+      debugPrint('❌ Password reset error: $e');
+      _setError('Password reset failed. Please try again.');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  // ============================================
+  // GOOGLE SIGN-IN
+  // ============================================
+
   Future<bool> signInWithGoogle() async {
     try {
       _setLoading(true);
-      clearError();
+      _setError(null);
 
-      // Trigger Google Sign In
+      debugPrint('🔐 Starting Google Sign-In...');
+
+      // Trigger Google Sign-In flow
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      
+
       if (googleUser == null) {
-        _setError('Google Sign In cancelled');
+        debugPrint('⚠️ Google sign-in cancelled by user');
         _setLoading(false);
         return false;
       }
@@ -324,96 +384,406 @@ class AuthService extends ChangeNotifier {
       // Get auth details
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
 
-      // Send to backend
-      final response = await _dio.post(
-        '/api/auth/google/',
-        data: {
-          'access_token': googleAuth.accessToken,
-          'id_token': googleAuth.idToken,
-        },
-      );
-      
-      await _saveAuth(
-        accessToken: response.data['access'],
-        refreshToken: response.data['refresh'],
-        user: response.data['user'],
-      );
-      
-      debugPrint('✅ Google Sign In successful');
-      _setLoading(false);
+      debugPrint('✅ Google sign-in successful: ${googleUser.email}');
+
+      // Create user data
+      final userData = {
+        'id': googleUser.id,
+        'email': googleUser.email,
+        'displayName': googleUser.displayName,
+        'photoURL': googleUser.photoUrl,
+        'accessToken': googleAuth.accessToken,
+        'idToken': googleAuth.idToken,
+        'provider': 'google',
+      };
+
+      await _saveUserToStorage(userData, 'google');
+      notifyListeners();
+
       return true;
-      
-    } on DioException catch (e) {
-      _setError(e.response?.data['error'] ?? 'Google Sign In failed');
-      _setLoading(false);
-      return false;
     } catch (e) {
-      _setError('Google Sign In failed: $e');
-      _setLoading(false);
+      debugPrint('❌ Google sign-in error: $e');
+      _setError('Google sign-in failed. Please try again.');
       return false;
+    } finally {
+      _setLoading(false);
     }
   }
 
-  // 🟦 Sign in with Microsoft
+  // ============================================
+  // APPLE SIGN-IN
+  // ============================================
+
+  Future<bool> signInWithApple() async {
+    try {
+      _setLoading(true);
+      _setError(null);
+
+      debugPrint('🔐 Starting Apple Sign-In...');
+
+      // Check if available
+      final isAvailable = await SignInWithApple.isAvailable();
+      if (!isAvailable) {
+        _setError('Apple Sign-In is not available on this device');
+        _setLoading(false);
+        return false;
+      }
+
+      // Request credential
+      final credential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+      );
+
+      debugPrint('✅ Apple sign-in successful');
+
+      // Create user data
+      final displayName = credential.givenName != null || credential.familyName != null
+          ? '${credential.givenName ?? ''} ${credential.familyName ?? ''}'.trim()
+          : null;
+
+      final userData = {
+        'id': credential.userIdentifier,
+        'email': credential.email ?? 'apple_user_${credential.userIdentifier}',
+        'displayName': displayName,
+        'identityToken': credential.identityToken,
+        'authorizationCode': credential.authorizationCode,
+        'provider': 'apple',
+      };
+
+      await _saveUserToStorage(userData, 'apple');
+      notifyListeners();
+
+      return true;
+    } catch (e) {
+      debugPrint('❌ Apple sign-in error: $e');
+
+      // Handle user cancellation gracefully
+      if (e.toString().contains('1001') || e.toString().contains('canceled')) {
+        debugPrint('⚠️ Apple sign-in cancelled by user');
+        _setLoading(false);
+        return false;
+      }
+
+      _setError('Apple sign-in failed. Please try again.');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  // ============================================
+  // MICROSOFT SIGN-IN
+  // ============================================
+
   Future<bool> signInWithMicrosoft() async {
     try {
       _setLoading(true);
-      clearError();
-      
-      // Note: You'll need to implement Microsoft OAuth flow
-      // For now, this is a placeholder
-      _setError('Microsoft Sign In coming soon');
-      _setLoading(false);
-      return false;
-      
-    } catch (e) {
-      _setError('Microsoft Sign In failed: $e');
-      _setLoading(false);
-      return false;
-    }
-  }
+      _setError(null);
 
-  // 🚪 Sign out
-  Future<void> signOut() async {
-    try {
-      if (_refreshToken != null) {
-        await _dio.post(
-          '/api/auth/logout/',
-          data: {'refresh': _refreshToken},
+      debugPrint('🔐 Starting Microsoft Sign-In...');
+
+      // Authorize with Microsoft
+      final AuthorizationTokenResponse? result = await _appAuth.authorizeAndExchangeCode(
+        AuthorizationTokenRequest(
+          _microsoftClientId,
+          _microsoftRedirectUri,
+          serviceConfiguration: AuthorizationServiceConfiguration(
+            authorizationEndpoint: _microsoftAuthorizationEndpoint,
+            tokenEndpoint: _microsoftTokenEndpoint,
+          ),
+          scopes: _microsoftScopes,
+          promptValues: ['login'], // Force account selection
+        ),
+      );
+
+      if (result == null) {
+        debugPrint('⚠️ Microsoft sign-in cancelled by user');
+        _setLoading(false);
+        return false;
+      }
+
+      debugPrint('✅ Microsoft access token obtained');
+
+      // Store tokens securely
+      if (result.accessToken != null) {
+        await _secureStorage.write(
+          key: 'microsoft_access_token',
+          value: result.accessToken,
         );
       }
-    } catch (e) {
-      debugPrint('⚠️ Logout API call failed: $e');
-    }
-    
-    await _googleSignIn.signOut();
-    await _clearAuth();
-    debugPrint('✅ Sign out successful');
-  }
+      if (result.refreshToken != null) {
+        await _secureStorage.write(
+          key: 'microsoft_refresh_token',
+          value: result.refreshToken,
+        );
+      }
 
-  // 👤 Get user profile
-  Future<void> fetchUserProfile() async {
-    try {
-      final response = await _dio.get('/api/auth/profile/');
-      _user = response.data;
-      await _storage.write(key: 'user', value: jsonEncode(_user!));
+      // Get user info from Microsoft Graph API
+      final userInfo = await _getMicrosoftUserInfo(result.accessToken!);
+
+      if (userInfo == null) {
+        _setError('Failed to get user information');
+        _setLoading(false);
+        return false;
+      }
+
+      debugPrint('✅ Microsoft sign-in successful: ${userInfo['mail'] ?? userInfo['userPrincipalName']}');
+
+      // Create user data
+      final userData = {
+        'id': userInfo['id'],
+        'email': userInfo['mail'] ?? userInfo['userPrincipalName'],
+        'displayName': userInfo['displayName'],
+        'photoURL': null, // Would need additional API call
+        'accessToken': result.accessToken,
+        'refreshToken': result.refreshToken,
+        'provider': 'microsoft',
+      };
+
+      await _saveUserToStorage(userData, 'microsoft');
       notifyListeners();
+
+      return true;
     } catch (e) {
-      debugPrint('❌ Error fetching profile: $e');
+      debugPrint('❌ Microsoft sign-in error: $e');
+      
+      // Handle user cancellation
+      if (e.toString().contains('User cancelled') || 
+          e.toString().contains('CANCELED')) {
+        debugPrint('⚠️ Microsoft sign-in cancelled by user');
+        _setLoading(false);
+        return false;
+      }
+      
+      _setError('Microsoft sign-in failed. Please try again.');
+      return false;
+    } finally {
+      _setLoading(false);
     }
   }
 
-  // Helper: Generate nonce for Apple Sign In
-  String _generateNonce([int length = 32]) {
-    const charset = '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
-    final random = Random.secure();
-    return List.generate(length, (_) => charset[random.nextInt(charset.length)]).join();
+  Future<Map<String, dynamic>?> _getMicrosoftUserInfo(String accessToken) async {
+    try {
+      final response = await http.get(
+        Uri.parse('https://graph.microsoft.com/v1.0/me'),
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        debugPrint('❌ Failed to get user info: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      debugPrint('❌ Error getting user info: $e');
+      return null;
+    }
   }
 
-  // Helper: SHA256 hash
-  String _sha256ofString(String input) {
-    final bytes = utf8.encode(input);
-    final digest = sha256.convert(bytes);
-    return digest.toString();
+  // ============================================
+  // SIGN OUT
+  // ============================================
+
+  Future<void> signOut() async {
+    try {
+      _setLoading(true);
+
+      debugPrint('🚪 Signing out user...');
+
+      // Sign out from respective provider
+      switch (_authProvider) {
+        case 'google':
+          await _googleSignIn.signOut();
+          break;
+        case 'microsoft':
+          // Clear secure storage tokens
+          await _secureStorage.delete(key: 'microsoft_access_token');
+          await _secureStorage.delete(key: 'microsoft_refresh_token');
+          break;
+        case 'email':
+          // Clear email auth tokens
+          await _secureStorage.delete(key: 'email_access_token');
+          await _secureStorage.delete(key: 'email_refresh_token');
+          
+          // Optional: Call backend logout endpoint
+          try {
+            final accessToken = await _secureStorage.read(key: 'email_access_token');
+            if (accessToken != null) {
+              await http.post(
+                Uri.parse('$_backendUrl/api/auth/logout'),
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': 'Bearer $accessToken',
+                },
+              );
+            }
+          } catch (e) {
+            debugPrint('⚠️ Backend logout failed (continuing): $e');
+          }
+          break;
+        case 'apple':
+          // Apple doesn't have a sign-out method
+          break;
+      }
+
+      // Clear local storage
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('user_data');
+      await prefs.remove('auth_provider');
+
+      _user = null;
+      _authProvider = null;
+      _errorMessage = null;
+
+      notifyListeners();
+
+      debugPrint('✅ User signed out successfully');
+    } catch (e) {
+      debugPrint('❌ Sign out error: $e');
+    } finally {
+      _setLoading(false);
+    }
   }
+
+  // ============================================
+  // USER PROFILE METHODS
+  // ============================================
+
+  String? getUserId() => _user?['id'];
+
+  String? getUserEmail() => _user?['email'];
+
+  String? getUserDisplayName() => _user?['displayName'];
+
+  String? getUserPhotoURL() => _user?['photoURL'];
+
+  Map<String, dynamic>? getUserData() => _user;
+
+  Future<bool> updateUserProfile({
+    String? displayName,
+    String? photoURL,
+  }) async {
+    if (_user == null) return false;
+
+    try {
+      final updatedUser = Map<String, dynamic>.from(_user!);
+
+      if (displayName != null) {
+        updatedUser['displayName'] = displayName;
+      }
+      if (photoURL != null) {
+        updatedUser['photoURL'] = photoURL;
+      }
+
+      await _saveUserToStorage(updatedUser, _authProvider!);
+      notifyListeners();
+
+      debugPrint('✅ User profile updated');
+      return true;
+    } catch (e) {
+      debugPrint('❌ Error updating profile: $e');
+      return false;
+    }
+  }
+
+  // ============================================
+  // TOKEN REFRESH (for Microsoft)
+  // ============================================
+
+  Future<String?> refreshMicrosoftToken() async {
+    if (_authProvider != 'microsoft') return null;
+
+    try {
+      // Get stored refresh token
+      final refreshToken = await _secureStorage.read(key: 'microsoft_refresh_token');
+      
+      if (refreshToken == null) {
+        debugPrint('❌ No refresh token found');
+        return null;
+      }
+
+      // Request new access token
+      final TokenResponse? result = await _appAuth.token(
+        TokenRequest(
+          _microsoftClientId,
+          _microsoftRedirectUri,
+          serviceConfiguration: AuthorizationServiceConfiguration(
+            authorizationEndpoint: _microsoftAuthorizationEndpoint,
+            tokenEndpoint: _microsoftTokenEndpoint,
+          ),
+          refreshToken: refreshToken,
+        ),
+      );
+
+      if (result?.accessToken != null) {
+        // Store new tokens
+        await _secureStorage.write(
+          key: 'microsoft_access_token',
+          value: result!.accessToken,
+        );
+        
+        if (result.refreshToken != null) {
+          await _secureStorage.write(
+            key: 'microsoft_refresh_token',
+            value: result.refreshToken,
+          );
+        }
+
+        // Update user data
+        if (_user != null) {
+          final updatedUser = Map<String, dynamic>.from(_user!);
+          updatedUser['accessToken'] = result.accessToken;
+          updatedUser['refreshToken'] = result.refreshToken;
+          await _saveUserToStorage(updatedUser, 'microsoft');
+        }
+
+        debugPrint('✅ Microsoft token refreshed');
+        return result.accessToken;
+      }
+
+      return null;
+    } catch (e) {
+      debugPrint('❌ Token refresh failed: $e');
+      return null;
+    }
+  }
+
+  // ============================================
+  // UTILITY METHODS
+  // ============================================
+
+  bool isSignedInWith(String provider) {
+    return _authProvider == provider && _user != null;
+  }
+
+  Future<void> checkAuthStatus() async {
+    await _loadUserFromStorage();
+  }
+}
+
+
+  void _setLoading(bool loading) {
+    _isLoading = loading;
+    notifyListeners();
+  }
+
+  void _setError(String? error) {
+    _errorMessage = error;
+    notifyListeners();
+  }
+
+  void clearError() {
+    _errorMessage = null;
+    notifyListeners();
+  }
+
+  // Note: Email/Password removed - using only native OAuth providers
+  // If you need email/password, you can add it to your Django backend
 }

@@ -1,150 +1,444 @@
-// lib/services/revenue_cat_service.dart
-import 'dart:async';
-import 'dart:io' show Platform;
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
-class RevenueCatService {
+class RevenueCatService extends ChangeNotifier {
   static final RevenueCatService _instance = RevenueCatService._internal();
   factory RevenueCatService() => _instance;
   RevenueCatService._internal();
 
-  // 🔑 YOUR TEST API KEY
-  static const String _apiKey = 'test_lKLgTvZoLpZxhyoigixLvHsAuqL';
+  // Your RevenueCat API keys
+  static const String _iosApiKey = 'appl_QGkIOsXyGDNnMpxenremWxVcJWD';
+  static const String _androidApiKey = 'goog_oaPgPpweeTAgWszlkHGHYxBYWdx';
 
-  // 📦 Product IDs (must match App Store Connect / Play Console)
-  static const String premiumMonthly = 'euphorie_monthly';
-  static const String premiumYearly = 'euphorie_yearly';
+  // Entitlement IDs (must match RevenueCat dashboard)
+  static const String premiumEntitlementId = 'premium_features';
+  static const String proEntitlementId = 'pro_features';
 
-  // 🎁 Entitlement ID (configure in RevenueCat dashboard)
-  static const String premiumEntitlement = 'euphorie_premium';
+  // Product IDs (must match App Store Connect & Play Console)
+  static const String premiumMonthlyId = 'euphorie_premium_monthly';
+  static const String premiumYearlyId = 'euphorie_premium_yearly';
+  static const String proMonthlyId = 'euphorie_pro_monthly';
+  static const String proYearlyId = 'euphorie_pro_yearly';
 
-  bool _isInitialized = false;
   CustomerInfo? _customerInfo;
-  StreamController<bool>? _subscriptionStatusController;
+  Offerings? _offerings;
+  bool _isInitialized = false;
+  bool _isPremium = false;
+  bool _isPro = false;
+  int _dailyAnalysisCount = 0;
+  int _dailyLimit = 10;
 
-  Stream<bool> get subscriptionStatusStream {
-    _subscriptionStatusController ??= StreamController.broadcast();
-    return _subscriptionStatusController!.stream;
+  // Getters
+  CustomerInfo? get customerInfo => _customerInfo;
+  Offerings? get offerings => _offerings;
+  bool get isInitialized => _isInitialized;
+  bool get isPremium => _isPremium;
+  bool get isPro => _isPro;
+  bool get hasAnySubscription => _isPremium || _isPro;
+  int get dailyAnalysisCount => _dailyAnalysisCount;
+  int get dailyLimit => _dailyLimit;
+  int get remainingAnalyses => _dailyLimit - _dailyAnalysisCount;
+  
+  SubscriptionTier get currentTier {
+    if (_isPro) return SubscriptionTier.pro;
+    if (_isPremium) return SubscriptionTier.premium;
+    return SubscriptionTier.free;
   }
 
-  /// Initialize RevenueCat SDK
-  Future<void> initialize({String? userId}) async {
-    if (_isInitialized) return;
+  // ============================================
+  // INITIALIZATION
+  // ============================================
+
+  Future<void> initialize() async {
+    if (_isInitialized) {
+      debugPrint('⚠️ RevenueCat already initialized');
+      return;
+    }
 
     try {
-      final configuration = PurchasesConfiguration(_apiKey);
-      
-      if (userId != null) {
-        configuration.appUserID = userId;
-      }
+      debugPrint('🔐 Initializing RevenueCat...');
+
+      // Configure SDK
+      final configuration = PurchasesConfiguration(
+        defaultTargetPlatform == TargetPlatform.iOS 
+            ? _iosApiKey 
+            : _androidApiKey,
+      );
 
       await Purchases.configure(configuration);
-      await Purchases.setLogLevel(LogLevel.debug);
 
-      Purchases.addCustomerInfoUpdateListener((customerInfo) {
-        _customerInfo = customerInfo;
-        _subscriptionStatusController?.add(isPremium());
-      });
-
-      _customerInfo = await Purchases.getCustomerInfo();
-      _isInitialized = true;
-      
-      debugPrint('✅ RevenueCat initialized - User is ${isPremium() ? "PREMIUM" : "FREE"}');
-    } catch (e) {
-      debugPrint('❌ RevenueCat initialization error: $e');
-      rethrow;
-    }
-  }
-
-  /// Check if user has premium subscription
-  bool isPremium() {
-    if (_customerInfo == null) return false;
-    final entitlements = _customerInfo!.entitlements.all;
-    return entitlements[premiumEntitlement]?.isActive ?? false;
-  }
-
-  /// Get available offerings (subscription plans)
-  Future<Offerings?> getOfferings() async {
-    try {
-      debugPrint('🔍 Fetching offerings from RevenueCat...');
-      final offerings = await Purchases.getOfferings();
-      
-      if (offerings.current == null) {
-        debugPrint('⚠️ No current offering found');
-        return null;
+      // Enable debug logs in debug mode
+      if (kDebugMode) {
+        await Purchases.setLogLevel(LogLevel.debug);
       }
 
-      debugPrint('📦 Found ${offerings.current!.availablePackages.length} packages');
-      return offerings;
+      // Get customer info
+      await refreshCustomerInfo();
+
+      // Load offerings
+      await loadOfferings();
+
+      // Set up listener for purchase updates
+      Purchases.addCustomerInfoUpdateListener(_onCustomerInfoUpdate);
+
+      _isInitialized = true;
+      debugPrint('✅ RevenueCat initialized successfully');
+      
     } catch (e) {
-      debugPrint('❌ Error fetching offerings: $e');
-      return null;
+      debugPrint('❌ RevenueCat initialization failed: $e');
+      // Continue anyway - app should work without subscriptions
     }
   }
 
-  /// Purchase a package
+  // ============================================
+  // CUSTOMER INFO
+  // ============================================
+
+  Future<void> refreshCustomerInfo() async {
+    try {
+      _customerInfo = await Purchases.getCustomerInfo();
+      _updateEntitlements();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('❌ Error refreshing customer info: $e');
+    }
+  }
+
+  void _onCustomerInfoUpdate(CustomerInfo customerInfo) {
+    debugPrint('👤 Customer info updated');
+    _customerInfo = customerInfo;
+    _updateEntitlements();
+    notifyListeners();
+  }
+
+  void _updateEntitlements() {
+    if (_customerInfo == null) {
+      _isPremium = false;
+      _isPro = false;
+      return;
+    }
+
+    // Check entitlements
+    final entitlements = _customerInfo!.entitlements.all;
+    
+    _isPro = entitlements[proEntitlementId]?.isActive ?? false;
+    _isPremium = entitlements[premiumEntitlementId]?.isActive ?? false;
+
+    // Update daily limit based on tier
+    if (_isPro || _isPremium) {
+      _dailyLimit = 999999; // Effectively unlimited
+    } else {
+      _dailyLimit = 10;
+    }
+
+    debugPrint('💎 Premium: $_isPremium');
+    debugPrint('🌟 Pro: $_isPro');
+    debugPrint('📊 Daily limit: $_dailyLimit');
+  }
+
+  // ============================================
+  // OFFERINGS
+  // ============================================
+
+  Future<void> loadOfferings() async {
+    try {
+      _offerings = await Purchases.getOfferings();
+      
+      if (_offerings?.current != null) {
+        final current = _offerings!.current!;
+        debugPrint('✅ Loaded offering: ${current.identifier}');
+        debugPrint('   Packages: ${current.availablePackages.length}');
+        
+        for (var package in current.availablePackages) {
+          debugPrint('   - ${package.identifier}: ${package.storeProduct.priceString}');
+        }
+      } else {
+        debugPrint('⚠️ No current offering found');
+      }
+      
+      notifyListeners();
+    } catch (e) {
+      debugPrint('❌ Error loading offerings: $e');
+    }
+  }
+
+  // ============================================
+  // PURCHASE
+  // ============================================
+
   Future<bool> purchasePackage(Package package) async {
     try {
-      debugPrint('💳 Attempting purchase: ${package.identifier}');
-      final purchaseResult = await Purchases.purchasePackage(package);
-      _customerInfo = purchaseResult.customerInfo;
-      _subscriptionStatusController?.add(isPremium());
+      debugPrint('💳 Starting purchase: ${package.identifier}');
+
+      final purchaserInfo = await Purchases.purchasePackage(package);
       
-      final success = isPremium();
-      debugPrint(success ? '✅ Purchase successful!' : '❌ Purchase failed');
-      return success;
+      _customerInfo = purchaserInfo.customerInfo;
+      _updateEntitlements();
+      notifyListeners();
+
+      debugPrint('✅ Purchase successful!');
+      return true;
+
     } on PlatformException catch (e) {
       final errorCode = PurchasesErrorHelper.getErrorCode(e);
+      
       if (errorCode == PurchasesErrorCode.purchaseCancelledError) {
-        debugPrint('ℹ️ User cancelled purchase');
+        debugPrint('⚠️ Purchase cancelled by user');
+      } else if (errorCode == PurchasesErrorCode.purchaseNotAllowedError) {
+        debugPrint('❌ Purchase not allowed');
       } else {
-        debugPrint('❌ Purchase error: $e');
+        debugPrint('❌ Purchase error: ${e.message}');
       }
+      
       return false;
     } catch (e) {
-      debugPrint('❌ Unexpected purchase error: $e');
+      debugPrint('❌ Purchase error: $e');
       return false;
     }
   }
 
-  /// Restore purchases
+  Future<bool> purchaseProduct(String productId) async {
+    if (_offerings?.current == null) {
+      debugPrint('❌ No offerings available');
+      return false;
+    }
+
+    final package = _offerings!.current!.availablePackages.firstWhere(
+      (pkg) => pkg.storeProduct.identifier == productId,
+      orElse: () => throw Exception('Product not found: $productId'),
+    );
+
+    return purchasePackage(package);
+  }
+
+  // ============================================
+  // RESTORE PURCHASES
+  // ============================================
+
   Future<bool> restorePurchases() async {
     try {
       debugPrint('🔄 Restoring purchases...');
+
       final customerInfo = await Purchases.restorePurchases();
-      _customerInfo = customerInfo;
-      _subscriptionStatusController?.add(isPremium());
       
-      final success = isPremium();
-      debugPrint(success ? '✅ Purchases restored!' : 'ℹ️ No purchases to restore');
-      return success;
+      _customerInfo = customerInfo;
+      _updateEntitlements();
+      notifyListeners();
+
+      if (_isPremium || _isPro) {
+        debugPrint('✅ Purchases restored successfully');
+        return true;
+      } else {
+        debugPrint('⚠️ No active subscriptions found');
+        return false;
+      }
+
     } catch (e) {
-      debugPrint('❌ Restore error: $e');
+      debugPrint('❌ Error restoring purchases: $e');
       return false;
     }
   }
 
-  /// Get vision scan limit based on subscription
-  int getVisionScanLimit() {
-    return isPremium() ? -1 : 20; // -1 = unlimited
+  // ============================================
+  // USAGE TRACKING
+  // ============================================
+
+  bool canAnalyze() {
+    // Premium and Pro get unlimited
+    if (_isPro || _isPremium) {
+      return true;
+    }
+
+    // Free tier: check daily limit
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    
+    // Reset counter if it's a new day
+    // (In production, you'd store this in local storage)
+    // For now, this is simplified
+    
+    return _dailyAnalysisCount < _dailyLimit;
   }
 
-  /// Check if feature is available
-  bool isFeatureAvailable(String feature) {
-    if (isPremium()) return true;
-
-    // Free tier features
-    const freeTierFeatures = [
-      'basic_vision',
-      'text_recognition',
-      'basic_ar',
-    ];
-    return freeTierFeatures.contains(feature);
+  void incrementAnalysisCount() {
+    if (!_isPro && !_isPremium) {
+      _dailyAnalysisCount++;
+      notifyListeners();
+      
+      debugPrint('📊 Analysis count: $_dailyAnalysisCount/$_dailyLimit');
+    }
   }
 
-  void dispose() {
-    _subscriptionStatusController?.close();
+  void resetDailyCount() {
+    _dailyAnalysisCount = 0;
+    notifyListeners();
+    debugPrint('🔄 Daily analysis count reset');
+  }
+
+  // ============================================
+  // FEATURE ACCESS
+  // ============================================
+
+  bool canUse3DObjects() {
+    return _isPremium || _isPro;
+  }
+
+  bool canUseMeasurements() {
+    return _isPremium || _isPro;
+  }
+
+  bool canUseVoiceCommands() {
+    return _isPremium || _isPro;
+  }
+
+  bool canExportHistory() {
+    return _isPremium || _isPro;
+  }
+
+  bool canUseAPI() {
+    return _isPro;
+  }
+
+  bool hasPriorityProcessing() {
+    return _isPro;
+  }
+
+  bool canRemoveWatermarks() {
+    return _isPremium || _isPro;
+  }
+
+  // ============================================
+  // SUBSCRIPTION INFO
+  // ============================================
+
+  String? getSubscriptionExpirationDate() {
+    if (_customerInfo == null) return null;
+
+    EntitlementInfo? activeEntitlement;
+    
+    if (_isPro) {
+      activeEntitlement = _customerInfo!.entitlements.all[proEntitlementId];
+    } else if (_isPremium) {
+      activeEntitlement = _customerInfo!.entitlements.all[premiumEntitlementId];
+    }
+
+    if (activeEntitlement?.expirationDate != null) {
+      return activeEntitlement!.expirationDate!;
+    }
+
+    return null;
+  }
+
+  bool willRenew() {
+    if (_customerInfo == null) return false;
+
+    EntitlementInfo? activeEntitlement;
+    
+    if (_isPro) {
+      activeEntitlement = _customerInfo!.entitlements.all[proEntitlementId];
+    } else if (_isPremium) {
+      activeEntitlement = _customerInfo!.entitlements.all[premiumEntitlementId];
+    }
+
+    return activeEntitlement?.willRenew ?? false;
+  }
+
+  String? getProductIdentifier() {
+    if (_customerInfo == null) return null;
+
+    EntitlementInfo? activeEntitlement;
+    
+    if (_isPro) {
+      activeEntitlement = _customerInfo!.entitlements.all[proEntitlementId];
+    } else if (_isPremium) {
+      activeEntitlement = _customerInfo!.entitlements.all[premiumEntitlementId];
+    }
+
+    return activeEntitlement?.productIdentifier;
+  }
+
+  // ============================================
+  // PROMOTIONAL OFFERS
+  // ============================================
+
+  Future<void> checkEligibilityForIntroOffer(String productId) async {
+    try {
+      final eligibility = await Purchases.checkTrialOrIntroductoryPriceEligibility([productId]);
+      final status = eligibility[productId];
+      
+      debugPrint('🎁 Intro offer eligibility for $productId: ${status?.status}');
+    } catch (e) {
+      debugPrint('❌ Error checking intro offer: $e');
+    }
+  }
+
+  // ============================================
+  // ATTRIBUTION
+  // ============================================
+
+  Future<void> setAttributes(Map<String, String> attributes) async {
+    try {
+      await Purchases.setAttributes(attributes);
+      debugPrint('✅ Attributes set');
+    } catch (e) {
+      debugPrint('❌ Error setting attributes: $e');
+    }
+  }
+
+  Future<void> setUserId(String userId) async {
+    try {
+      await Purchases.logIn(userId);
+      await refreshCustomerInfo();
+      debugPrint('✅ User ID set: $userId');
+    } catch (e) {
+      debugPrint('❌ Error setting user ID: $e');
+    }
+  }
+
+  Future<void> logout() async {
+    try {
+      await Purchases.logOut();
+      _customerInfo = null;
+      _isPremium = false;
+      _isPro = false;
+      notifyListeners();
+      debugPrint('✅ RevenueCat user logged out');
+    } catch (e) {
+      debugPrint('❌ Error logging out: $e');
+    }
+  }
+}
+
+// ============================================
+// SUBSCRIPTION TIER ENUM
+// ============================================
+
+enum SubscriptionTier {
+  free,
+  premium,
+  pro,
+}
+
+extension SubscriptionTierExtension on SubscriptionTier {
+  String get displayName {
+    switch (this) {
+      case SubscriptionTier.free:
+        return 'Free';
+      case SubscriptionTier.premium:
+        return 'Premium';
+      case SubscriptionTier.pro:
+        return 'Pro';
+    }
+  }
+
+  String get emoji {
+    switch (this) {
+      case SubscriptionTier.free:
+        return '🆓';
+      case SubscriptionTier.premium:
+        return '💎';
+      case SubscriptionTier.pro:
+        return '🌟';
+    }
   }
 }
