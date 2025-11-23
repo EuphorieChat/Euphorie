@@ -41,6 +41,7 @@ class EuphorieApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => NewsService()),
         ChangeNotifierProvider(create: (_) => VoiceService()),
         ChangeNotifierProvider(create: (_) => AuthService()),
+        ChangeNotifierProvider(create: (_) => RevenueCatService()),
       ],
       child: MaterialApp(
         title: 'Euphorie AI',
@@ -1039,7 +1040,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
   }
 }
 
-// ✅ Ultra-Premium Auth Bottom Sheet
+// ✅ UPDATED Auth Bottom Sheet WITH EMAIL/PASSWORD
 class AuthBottomSheet extends StatefulWidget {
   const AuthBottomSheet({super.key});
 
@@ -1050,6 +1051,7 @@ class AuthBottomSheet extends StatefulWidget {
 class _AuthBottomSheetState extends State<AuthBottomSheet> with SingleTickerProviderStateMixin {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _nameController = TextEditingController();
   bool _obscurePassword = true;
   bool _isRegistering = false;
   
@@ -1074,6 +1076,7 @@ class _AuthBottomSheetState extends State<AuthBottomSheet> with SingleTickerProv
     _glowController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _nameController.dispose();
     super.dispose();
   }
 
@@ -1180,77 +1183,46 @@ class _AuthBottomSheetState extends State<AuthBottomSheet> with SingleTickerProv
                       ),
                       const SizedBox(height: 32),
                       
-                      // Social Buttons with Premium styling
-                      _buildSocialButton(
-                        context: context,
-                        icon: Icons.apple,
-                        label: 'Continue with Apple',
-                        gradient: const LinearGradient(colors: [Colors.black, Color(0xFF1a1a1a)]),
-                        onPressed: authService.isLoading ? null : () async {
-                          final result = await authService.signInWithApple();
-                          if (result && mounted) Navigator.pop(context);
-                        },
-                      ),
-                      const SizedBox(height: 14),
-                      
-                      _buildSocialButton(
-                        context: context,
-                        icon: Icons.g_mobiledata,
-                        label: 'Continue with Google',
-                        gradient: const LinearGradient(colors: [Colors.white, Color(0xFFf5f5f5)]),
-                        textColor: Colors.black87,
-                        onPressed: authService.isLoading ? null : () async {
-                          final result = await authService.signInWithGoogle();
-                          if (result && mounted) Navigator.pop(context);
-                        },
-                      ),
-                      
-                      const SizedBox(height: 28),
-                      
-                      // Premium Divider
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Container(
-                              height: 1.5,
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    Colors.transparent,
-                                    Colors.white.withOpacity(0.3),
-                                  ],
-                                ),
+                      // ✅ EMAIL/PASSWORD FIELDS
+                      // Name field (only for registration)
+                      if (_isRegistering) ...[
+                        Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF8B5CF6).withOpacity(0.15),
+                                blurRadius: 20,
+                                spreadRadius: 2,
+                              ),
+                            ],
+                          ),
+                          child: TextField(
+                            controller: _nameController,
+                            style: const TextStyle(color: Colors.white, fontSize: 15),
+                            decoration: InputDecoration(
+                              hintText: 'Full Name',
+                              hintStyle: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 15),
+                              prefixIcon: Icon(Icons.person_outline, color: const Color(0xFFA78BFA), size: 22),
+                              filled: true,
+                              fillColor: Colors.white.withOpacity(0.09),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: const BorderSide(color: Color(0xFFA78BFA), width: 2.5),
                               ),
                             ),
                           ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: Text(
-                              'OR',
-                              style: TextStyle(
-                                color: Colors.white.withOpacity(0.6),
-                                fontWeight: FontWeight.w800,
-                                fontSize: 12,
-                                letterSpacing: 2,
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            child: Container(
-                              height: 1.5,
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    Colors.white.withOpacity(0.3),
-                                    Colors.transparent,
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 28),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
                       
                       // Email Field
                       Container(
@@ -1392,6 +1364,7 @@ class _AuthBottomSheetState extends State<AuthBottomSheet> with SingleTickerProv
                                     result = await authService.register(
                                       email: _emailController.text.trim(),
                                       password: _passwordController.text,
+                                      displayName: _nameController.text.trim().isEmpty ? null : _nameController.text.trim(),
                                     );
                                   } else {
                                     result = await authService.login(
@@ -1450,6 +1423,90 @@ class _AuthBottomSheetState extends State<AuthBottomSheet> with SingleTickerProv
                             fontWeight: FontWeight.w700,
                           ),
                         ),
+                      ),
+                      
+                      const SizedBox(height: 28),
+                      
+                      // Premium Divider
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Container(
+                              height: 1.5,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    Colors.transparent,
+                                    Colors.white.withOpacity(0.3),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Text(
+                              'OR',
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.6),
+                                fontWeight: FontWeight.w800,
+                                fontSize: 12,
+                                letterSpacing: 2,
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: Container(
+                              height: 1.5,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    Colors.white.withOpacity(0.3),
+                                    Colors.transparent,
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 28),
+                      
+                      // Social Buttons with Premium styling
+                      _buildSocialButton(
+                        context: context,
+                        icon: Icons.apple,
+                        label: 'Continue with Apple',
+                        gradient: const LinearGradient(colors: [Colors.black, Color(0xFF1a1a1a)]),
+                        onPressed: authService.isLoading ? null : () async {
+                          final result = await authService.signInWithApple();
+                          if (result && mounted) Navigator.pop(context);
+                        },
+                      ),
+                      const SizedBox(height: 14),
+                      
+                      _buildSocialButton(
+                        context: context,
+                        icon: Icons.g_mobiledata,
+                        label: 'Continue with Google',
+                        gradient: const LinearGradient(colors: [Colors.white, Color(0xFFf5f5f5)]),
+                        textColor: Colors.black87,
+                        onPressed: authService.isLoading ? null : () async {
+                          final result = await authService.signInWithGoogle();
+                          if (result && mounted) Navigator.pop(context);
+                        },
+                      ),
+                      const SizedBox(height: 14),
+                      
+                      _buildSocialButton(
+                        context: context,
+                        icon: Icons.window,
+                        label: 'Continue with Microsoft',
+                        gradient: const LinearGradient(colors: [Color(0xFF00A4EF), Color(0xFF0078D4)]),
+                        onPressed: authService.isLoading ? null : () async {
+                          final result = await authService.signInWithMicrosoft();
+                          if (result && mounted) Navigator.pop(context);
+                        },
                       ),
                     ],
                   ),

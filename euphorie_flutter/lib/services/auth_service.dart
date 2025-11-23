@@ -6,39 +6,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../config/auth_config.dart';
 
 class AuthService extends ChangeNotifier {
   // ============================================
   // CONFIGURATION
   // ============================================
   
-  // Google OAuth Configuration
-  static const String _googleClientIdIOS = '271690446038-a1c3v0vcc9qk6sdjn5jmgeir3n6256m8.apps.googleusercontent.com';
-  static const String _googleClientIdAndroid = '271690446038-a1c3v0vcc9qk6sdjn5jmgeir3n6256m8.apps.googleusercontent.com'; // Update if different
-  
-  // Microsoft OAuth Configuration
-  static const String _microsoftClientId = 'f8d15ce5-2c27-41cf-a8db-1e7c84ec0c11';
-  static const String _microsoftTenantId = '49a31049-7b61-4fae-bce8-5e9a2ce13434';
-  static const String _microsoftRedirectUri = 'msauth.com.euphorie.app://auth';
-  static const String _microsoftAuthorizationEndpoint = 
-      'https://login.microsoftonline.com/$_microsoftTenantId/oauth2/v2.0/authorize';
-  static const String _microsoftTokenEndpoint = 
-      'https://login.microsoftonline.com/$_microsoftTenantId/oauth2/v2.0/token';
-  static const List<String> _microsoftScopes = [
-    'openid',
-    'profile',
-    'email',
-    'offline_access',
-    'User.Read',
-  ];
-  
-  // Backend API (optional - for user profile storage)
-  static const String _backendUrl = 'https://euphorie.com';
-  
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     clientId: defaultTargetPlatform == TargetPlatform.iOS 
-        ? _googleClientIdIOS 
-        : _googleClientIdAndroid,
+        ? AuthConfig.googleClientIdIOS 
+        : AuthConfig.googleClientIdAndroid,
     scopes: ['email', 'profile'],
   );
   
@@ -48,7 +26,7 @@ class AuthService extends ChangeNotifier {
   Map<String, dynamic>? _user;
   bool _isLoading = false;
   String? _errorMessage;
-  String? _authProvider; // 'google', 'apple', 'microsoft'
+  String? _authProvider; // 'google', 'apple', 'microsoft', 'email'
 
   Map<String, dynamic>? get user => _user;
   bool get isLoading => _isLoading;
@@ -87,7 +65,9 @@ class AuthService extends ChangeNotifier {
       _authProvider = provider;
       
       // Optional: Save to backend
-      await _syncUserToBackend(userData);
+      if (AuthConfig.enableBackendSync) {
+        await _syncUserToBackend(userData);
+      }
       
       debugPrint('✅ User saved to storage');
     } catch (e) {
@@ -98,7 +78,7 @@ class AuthService extends ChangeNotifier {
   Future<void> _syncUserToBackend(Map<String, dynamic> userData) async {
     try {
       final response = await http.post(
-        Uri.parse('$_backendUrl/api/auth/sync'),
+        Uri.parse('${AuthConfig.backendUrl}/api/auth/sync'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(userData),
       );
@@ -130,7 +110,7 @@ class AuthService extends ChangeNotifier {
   // EMAIL & PASSWORD AUTHENTICATION
   // ============================================
 
-  Future<bool> registerWithEmail({
+  Future<bool> register({
     required String email,
     required String password,
     String? displayName,
@@ -141,14 +121,13 @@ class AuthService extends ChangeNotifier {
 
       debugPrint('🔐 Registering user with email: $email');
 
-      // Send registration request to your Django backend
       final response = await http.post(
-        Uri.parse('$_backendUrl/api/auth/register'),
+        Uri.parse('${AuthConfig.backendUrl}/api/auth/register/'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': email,
           'password': password,
-          'display_name': displayName,
+          'display_name': displayName ?? email.split('@')[0],
         }),
       );
 
@@ -157,17 +136,15 @@ class AuthService extends ChangeNotifier {
         
         debugPrint('✅ Registration successful');
 
-        // Create user data
         final userData = {
-          'id': data['user_id'] ?? data['id'],
-          'email': email,
-          'displayName': displayName ?? email.split('@')[0],
+          'id': data['user_id'].toString(),
+          'email': data['email'],
+          'displayName': data['display_name'] ?? displayName ?? email.split('@')[0],
           'accessToken': data['access_token'],
           'refreshToken': data['refresh_token'],
           'provider': 'email',
         };
 
-        // Store tokens securely
         if (data['access_token'] != null) {
           await _secureStorage.write(
             key: 'email_access_token',
@@ -187,7 +164,7 @@ class AuthService extends ChangeNotifier {
         return true;
       } else {
         final errorData = jsonDecode(response.body);
-        final errorMessage = errorData['message'] ?? errorData['error'] ?? 'Registration failed';
+        final errorMessage = errorData['error'] ?? 'Registration failed';
         
         debugPrint('❌ Registration failed: $errorMessage');
         _setError(errorMessage);
@@ -208,7 +185,7 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-  Future<bool> signInWithEmail({
+  Future<bool> login({
     required String email,
     required String password,
   }) async {
@@ -218,9 +195,8 @@ class AuthService extends ChangeNotifier {
 
       debugPrint('🔐 Signing in with email: $email');
 
-      // Send login request to your Django backend
       final response = await http.post(
-        Uri.parse('$_backendUrl/api/auth/login'),
+        Uri.parse('${AuthConfig.backendUrl}/api/auth/login/'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': email,
@@ -233,18 +209,15 @@ class AuthService extends ChangeNotifier {
         
         debugPrint('✅ Sign-in successful');
 
-        // Create user data
         final userData = {
-          'id': data['user_id'] ?? data['id'],
-          'email': email,
-          'displayName': data['display_name'] ?? data['name'] ?? email.split('@')[0],
-          'photoURL': data['photo_url'],
+          'id': data['user_id'].toString(),
+          'email': data['email'],
+          'displayName': data['display_name'] ?? email.split('@')[0],
           'accessToken': data['access_token'],
           'refreshToken': data['refresh_token'],
           'provider': 'email',
         };
 
-        // Store tokens securely
         if (data['access_token'] != null) {
           await _secureStorage.write(
             key: 'email_access_token',
@@ -264,16 +237,10 @@ class AuthService extends ChangeNotifier {
         return true;
       } else {
         final errorData = jsonDecode(response.body);
-        final errorMessage = errorData['message'] ?? errorData['error'] ?? 'Invalid credentials';
+        final errorMessage = errorData['error'] ?? 'Invalid credentials';
         
         debugPrint('❌ Sign-in failed: $errorMessage');
-        
-        if (errorMessage.contains('credentials') || errorMessage.contains('password')) {
-          _setError('Invalid email or password');
-        } else {
-          _setError(errorMessage);
-        }
-        
+        _setError(errorMessage);
         return false;
       }
     } catch (e) {
@@ -292,76 +259,6 @@ class AuthService extends ChangeNotifier {
   }
 
   // ============================================
-  // PASSWORD RESET
-  // ============================================
-
-  Future<bool> sendPasswordResetEmail(String email) async {
-    try {
-      _setLoading(true);
-      _setError(null);
-
-      debugPrint('📧 Sending password reset email to: $email');
-
-      final response = await http.post(
-        Uri.parse('$_backendUrl/api/auth/reset-password'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email}),
-      );
-
-      if (response.statusCode == 200) {
-        debugPrint('✅ Password reset email sent');
-        return true;
-      } else {
-        final errorData = jsonDecode(response.body);
-        _setError(errorData['message'] ?? 'Failed to send reset email');
-        return false;
-      }
-    } catch (e) {
-      debugPrint('❌ Password reset error: $e');
-      _setError('Failed to send reset email. Please try again.');
-      return false;
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-  Future<bool> resetPassword({
-    required String token,
-    required String newPassword,
-  }) async {
-    try {
-      _setLoading(true);
-      _setError(null);
-
-      debugPrint('🔑 Resetting password with token');
-
-      final response = await http.post(
-        Uri.parse('$_backendUrl/api/auth/reset-password/confirm'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'token': token,
-          'new_password': newPassword,
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        debugPrint('✅ Password reset successful');
-        return true;
-      } else {
-        final errorData = jsonDecode(response.body);
-        _setError(errorData['message'] ?? 'Password reset failed');
-        return false;
-      }
-    } catch (e) {
-      debugPrint('❌ Password reset error: $e');
-      _setError('Password reset failed. Please try again.');
-      return false;
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-  // ============================================
   // GOOGLE SIGN-IN
   // ============================================
 
@@ -372,7 +269,6 @@ class AuthService extends ChangeNotifier {
 
       debugPrint('🔐 Starting Google Sign-In...');
 
-      // Trigger Google Sign-In flow
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
 
       if (googleUser == null) {
@@ -381,12 +277,10 @@ class AuthService extends ChangeNotifier {
         return false;
       }
 
-      // Get auth details
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
 
       debugPrint('✅ Google sign-in successful: ${googleUser.email}');
 
-      // Create user data
       final userData = {
         'id': googleUser.id,
         'email': googleUser.email,
@@ -421,7 +315,6 @@ class AuthService extends ChangeNotifier {
 
       debugPrint('🔐 Starting Apple Sign-In...');
 
-      // Check if available
       final isAvailable = await SignInWithApple.isAvailable();
       if (!isAvailable) {
         _setError('Apple Sign-In is not available on this device');
@@ -429,7 +322,6 @@ class AuthService extends ChangeNotifier {
         return false;
       }
 
-      // Request credential
       final credential = await SignInWithApple.getAppleIDCredential(
         scopes: [
           AppleIDAuthorizationScopes.email,
@@ -439,7 +331,6 @@ class AuthService extends ChangeNotifier {
 
       debugPrint('✅ Apple sign-in successful');
 
-      // Create user data
       final displayName = credential.givenName != null || credential.familyName != null
           ? '${credential.givenName ?? ''} ${credential.familyName ?? ''}'.trim()
           : null;
@@ -460,7 +351,6 @@ class AuthService extends ChangeNotifier {
     } catch (e) {
       debugPrint('❌ Apple sign-in error: $e');
 
-      // Handle user cancellation gracefully
       if (e.toString().contains('1001') || e.toString().contains('canceled')) {
         debugPrint('⚠️ Apple sign-in cancelled by user');
         _setLoading(false);
@@ -485,17 +375,20 @@ class AuthService extends ChangeNotifier {
 
       debugPrint('🔐 Starting Microsoft Sign-In...');
 
-      // Authorize with Microsoft
       final AuthorizationTokenResponse? result = await _appAuth.authorizeAndExchangeCode(
         AuthorizationTokenRequest(
-          _microsoftClientId,
-          _microsoftRedirectUri,
+          AuthConfig.microsoftClientId,
+          defaultTargetPlatform == TargetPlatform.iOS 
+              ? AuthConfig.microsoftRedirectUriIOS 
+              : AuthConfig.microsoftRedirectUriAndroid,
           serviceConfiguration: AuthorizationServiceConfiguration(
-            authorizationEndpoint: _microsoftAuthorizationEndpoint,
-            tokenEndpoint: _microsoftTokenEndpoint,
+            authorizationEndpoint: 
+                'https://login.microsoftonline.com/${AuthConfig.microsoftTenantId}/oauth2/v2.0/authorize',
+            tokenEndpoint: 
+                'https://login.microsoftonline.com/${AuthConfig.microsoftTenantId}/oauth2/v2.0/token',
           ),
-          scopes: _microsoftScopes,
-          promptValues: ['login'], // Force account selection
+          scopes: ['openid', 'profile', 'email', 'offline_access', 'User.Read'],
+          promptValues: ['login'],
         ),
       );
 
@@ -507,7 +400,6 @@ class AuthService extends ChangeNotifier {
 
       debugPrint('✅ Microsoft access token obtained');
 
-      // Store tokens securely
       if (result.accessToken != null) {
         await _secureStorage.write(
           key: 'microsoft_access_token',
@@ -521,7 +413,6 @@ class AuthService extends ChangeNotifier {
         );
       }
 
-      // Get user info from Microsoft Graph API
       final userInfo = await _getMicrosoftUserInfo(result.accessToken!);
 
       if (userInfo == null) {
@@ -532,12 +423,10 @@ class AuthService extends ChangeNotifier {
 
       debugPrint('✅ Microsoft sign-in successful: ${userInfo['mail'] ?? userInfo['userPrincipalName']}');
 
-      // Create user data
       final userData = {
         'id': userInfo['id'],
         'email': userInfo['mail'] ?? userInfo['userPrincipalName'],
         'displayName': userInfo['displayName'],
-        'photoURL': null, // Would need additional API call
         'accessToken': result.accessToken,
         'refreshToken': result.refreshToken,
         'provider': 'microsoft',
@@ -550,7 +439,6 @@ class AuthService extends ChangeNotifier {
     } catch (e) {
       debugPrint('❌ Microsoft sign-in error: $e');
       
-      // Handle user cancellation
       if (e.toString().contains('User cancelled') || 
           e.toString().contains('CANCELED')) {
         debugPrint('⚠️ Microsoft sign-in cancelled by user');
@@ -597,43 +485,22 @@ class AuthService extends ChangeNotifier {
 
       debugPrint('🚪 Signing out user...');
 
-      // Sign out from respective provider
       switch (_authProvider) {
         case 'google':
           await _googleSignIn.signOut();
           break;
         case 'microsoft':
-          // Clear secure storage tokens
           await _secureStorage.delete(key: 'microsoft_access_token');
           await _secureStorage.delete(key: 'microsoft_refresh_token');
           break;
         case 'email':
-          // Clear email auth tokens
           await _secureStorage.delete(key: 'email_access_token');
           await _secureStorage.delete(key: 'email_refresh_token');
-          
-          // Optional: Call backend logout endpoint
-          try {
-            final accessToken = await _secureStorage.read(key: 'email_access_token');
-            if (accessToken != null) {
-              await http.post(
-                Uri.parse('$_backendUrl/api/auth/logout'),
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': 'Bearer $accessToken',
-                },
-              );
-            }
-          } catch (e) {
-            debugPrint('⚠️ Backend logout failed (continuing): $e');
-          }
           break;
         case 'apple':
-          // Apple doesn't have a sign-out method
           break;
       }
 
-      // Clear local storage
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('user_data');
       await prefs.remove('auth_provider');
@@ -657,107 +524,10 @@ class AuthService extends ChangeNotifier {
   // ============================================
 
   String? getUserId() => _user?['id'];
-
   String? getUserEmail() => _user?['email'];
-
   String? getUserDisplayName() => _user?['displayName'];
-
   String? getUserPhotoURL() => _user?['photoURL'];
-
   Map<String, dynamic>? getUserData() => _user;
-
-  Future<bool> updateUserProfile({
-    String? displayName,
-    String? photoURL,
-  }) async {
-    if (_user == null) return false;
-
-    try {
-      final updatedUser = Map<String, dynamic>.from(_user!);
-
-      if (displayName != null) {
-        updatedUser['displayName'] = displayName;
-      }
-      if (photoURL != null) {
-        updatedUser['photoURL'] = photoURL;
-      }
-
-      await _saveUserToStorage(updatedUser, _authProvider!);
-      notifyListeners();
-
-      debugPrint('✅ User profile updated');
-      return true;
-    } catch (e) {
-      debugPrint('❌ Error updating profile: $e');
-      return false;
-    }
-  }
-
-  // ============================================
-  // TOKEN REFRESH (for Microsoft)
-  // ============================================
-
-  Future<String?> refreshMicrosoftToken() async {
-    if (_authProvider != 'microsoft') return null;
-
-    try {
-      // Get stored refresh token
-      final refreshToken = await _secureStorage.read(key: 'microsoft_refresh_token');
-      
-      if (refreshToken == null) {
-        debugPrint('❌ No refresh token found');
-        return null;
-      }
-
-      // Request new access token
-      final TokenResponse? result = await _appAuth.token(
-        TokenRequest(
-          _microsoftClientId,
-          _microsoftRedirectUri,
-          serviceConfiguration: AuthorizationServiceConfiguration(
-            authorizationEndpoint: _microsoftAuthorizationEndpoint,
-            tokenEndpoint: _microsoftTokenEndpoint,
-          ),
-          refreshToken: refreshToken,
-        ),
-      );
-
-      if (result?.accessToken != null) {
-        // Store new tokens
-        await _secureStorage.write(
-          key: 'microsoft_access_token',
-          value: result!.accessToken,
-        );
-        
-        if (result.refreshToken != null) {
-          await _secureStorage.write(
-            key: 'microsoft_refresh_token',
-            value: result.refreshToken,
-          );
-        }
-
-        // Update user data
-        if (_user != null) {
-          final updatedUser = Map<String, dynamic>.from(_user!);
-          updatedUser['accessToken'] = result.accessToken;
-          updatedUser['refreshToken'] = result.refreshToken;
-          await _saveUserToStorage(updatedUser, 'microsoft');
-        }
-
-        debugPrint('✅ Microsoft token refreshed');
-        return result.accessToken;
-      }
-
-      return null;
-    } catch (e) {
-      debugPrint('❌ Token refresh failed: $e');
-      return null;
-    }
-  }
-
-  // ============================================
-  // UTILITY METHODS
-  // ============================================
 
   bool isSignedInWith(String provider) {
     return _authProvider == provider && _user != null;
@@ -766,24 +536,4 @@ class AuthService extends ChangeNotifier {
   Future<void> checkAuthStatus() async {
     await _loadUserFromStorage();
   }
-}
-
-
-  void _setLoading(bool loading) {
-    _isLoading = loading;
-    notifyListeners();
-  }
-
-  void _setError(String? error) {
-    _errorMessage = error;
-    notifyListeners();
-  }
-
-  void clearError() {
-    _errorMessage = null;
-    notifyListeners();
-  }
-
-  // Note: Email/Password removed - using only native OAuth providers
-  // If you need email/password, you can add it to your Django backend
 }
