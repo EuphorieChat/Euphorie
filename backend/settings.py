@@ -1,10 +1,11 @@
 """
 Django settings for euphorie_backend project.
-Complete configuration - ready to use!
+Complete configuration with JWT Auth - ready to use!
 """
 
 import os
 from pathlib import Path
+from datetime import timedelta
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -22,6 +23,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'rest_framework_simplejwt',  # ✅ JWT auth
+    'rest_framework_simplejwt.token_blacklist',  # ✅ Token blacklist
     'corsheaders',
 ]
 
@@ -86,10 +89,17 @@ CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
     "https://euphorie.com",
     "http://localhost:3000",
+    "http://localhost:8080",  # Flutter web
 ]
 
-# REST Framework
+# ✅ REST Framework with JWT Authentication
 REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
+    ],
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
     ],
@@ -97,6 +107,50 @@ REST_FRAMEWORK = {
         'rest_framework.parsers.JSONParser',
     ],
 }
+
+# ✅ JWT Settings
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=30),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'UPDATE_LAST_LOGIN': True,
+    
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+    'VERIFYING_KEY': None,
+    'AUDIENCE': None,
+    'ISSUER': 'euphorie-api',
+    'JWK_URL': None,
+    'LEEWAY': 0,
+
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
+    'USER_ID_FIELD': 'id',
+    'USER_ID_CLAIM': 'user_id',
+    'USER_AUTHENTICATION_RULE': 'rest_framework_simplejwt.authentication.default_user_authentication_rule',
+
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+    'TOKEN_TYPE_CLAIM': 'token_type',
+    'TOKEN_USER_CLASS': 'rest_framework_simplejwt.models.TokenUser',
+
+    'JTI_CLAIM': 'jti',
+}
+
+# ✅ OAuth Provider Settings (for future use if needed)
+# Apple Sign In
+APPLE_KEY_ID = os.environ.get('APPLE_KEY_ID', '')
+APPLE_TEAM_ID = os.environ.get('APPLE_TEAM_ID', '')
+APPLE_BUNDLE_ID = os.environ.get('APPLE_BUNDLE_ID', 'com.euphorie.euphorieFlutter')
+APPLE_PRIVATE_KEY = os.environ.get('APPLE_PRIVATE_KEY', '')
+
+# Google Sign In
+GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '')
+GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
+
+# Microsoft Sign In
+MICROSOFT_CLIENT_ID = os.environ.get('MICROSOFT_CLIENT_ID', '')
+MICROSOFT_CLIENT_SECRET = os.environ.get('MICROSOFT_CLIENT_SECRET', '')
 
 # Logging
 os.makedirs(BASE_DIR / 'logs', exist_ok=True)
@@ -132,6 +186,11 @@ LOGGING = {
             'propagate': False,
         },
         'vision': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'auth': {  # ✅ Auth logger
             'handlers': ['console', 'file'],
             'level': 'INFO',
             'propagate': False,
