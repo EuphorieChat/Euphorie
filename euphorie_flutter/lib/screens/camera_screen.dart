@@ -114,16 +114,18 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
       
       print('🎥 Initializing camera: ${camera.name}...');
       
+      // ⚡ CHANGED: Use medium resolution instead of high
+      // This reduces image size significantly while still being usable
       _controller = CameraController(
         camera,
-        ResolutionPreset.high,
+        ResolutionPreset.medium,  // Changed from .high to .medium (480p vs 720p+)
         enableAudio: false,
         imageFormatGroup: ImageFormatGroup.jpeg,
       );
       
       await _controller!.initialize();
       
-      print('✅ Camera initialized successfully!');
+      print('✅ Camera initialized at ${_controller!.value.previewSize}');
       
       if (mounted) {
         setState(() {
@@ -153,6 +155,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
   void _startDetectionLoop() {
     print('🎯 Starting AI detection loop...');
     
+    // Run detection every 3 seconds
     _detectionTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
       if (_controller != null && 
           _controller!.value.isInitialized && 
@@ -174,94 +177,30 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
       _detectionStatus = 'Capturing...';
     });
 
+    String? imagePath;
+    
     try {
       final image = await _controller!.takePicture();
-      print('📸 Frame captured: ${image.path}');
+      imagePath = image.path;
+      print('📸 Frame captured: $imagePath');
+      
+      // Get file size for logging
+      final fileSize = await File(imagePath).length();
+      print('📦 Original file size: ${(fileSize / 1024).toStringAsFixed(1)} KB');
       
       setState(() {
-        _detectionStatus = 'Converting image...';
+        _detectionStatus = 'Analyzing...';
       });
       
-      final bytes = await File(image.path).readAsBytes();
-      final base64Image = base64Encode(bytes);
-      print('📦 Converted to base64 (${base64Image.length} chars)');
-      
-      setState(() {
-        _detectionStatus = 'Sending to AI...';
-      });
-      
-      final result = await _apiService.analyzeVisionSimple(
-        frameBase64: base64Image,
-        context: 'flutter-realtime',
+      // ⚡ Use the new method that handles compression internally
+      final result = await _apiService.analyzeVisionFromFile(
+        filePath: imagePath,
+        context: _getTimeContext(),
       );
       
       if (result != null) {
-        print('✅ Got detection result: $result');
-        
-        if (result['objects_detected'] != null && result['objects_detected'] is List) {
-          final objectsList = result['objects_detected'] as List;
-          
-          if (objectsList.isNotEmpty) {
-            print('🎯 Found ${objectsList.length} objects: $objectsList');
-            
-            final mockDetections = DetectionResult(
-              objects: objectsList.asMap().entries.map((entry) {
-                final index = entry.key;
-                final label = entry.value.toString();
-                
-                return DetectedObject(
-                  label: label,
-                  confidence: (result['confidence'] as num?)?.toDouble() ?? 0.85,
-                  boundingBox: BoundingBox(
-                    x: 0.1,
-                    y: 0.1 + (index * 0.18),
-                    width: 0.8,
-                    height: 0.15,
-                  ),
-                );
-              }).toList(),
-              message: result['insight'] as String?,
-            );
-            
-            setState(() {
-              _currentDetections = mockDetections;
-              _detectionStatus = 'Detected ${objectsList.length} objects';
-            });
-            
-            try {
-              await File(image.path).delete();
-            } catch (e) {
-              print('⚠️ Could not delete temp file: $e');
-            }
-            
-            return;
-          }
-        }
-        
-        try {
-          final detections = DetectionResult.fromJson(result);
-          
-          if (detections.hasDetections) {
-            print('🎯 Found ${detections.detectionCount} objects with bounding boxes!');
-            
-            setState(() {
-              _currentDetections = detections;
-              _detectionStatus = 'Detected ${detections.detectionCount} objects';
-            });
-          } else {
-            print('👀 No objects detected');
-            setState(() {
-              _currentDetections = null;
-              _detectionStatus = 'No objects found';
-            });
-          }
-        } catch (e) {
-          print('⚠️ Could not parse detection: $e');
-          setState(() {
-            _currentDetections = null;
-            _detectionStatus = 'No objects found';
-          });
-        }
+        print('✅ Got detection result');
+        _handleDetectionResult(result);
       } else {
         print('⚠️ No response from backend');
         setState(() {
@@ -269,24 +208,28 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
         });
       }
       
-      try {
-        await File(image.path).delete();
-      } catch (e) {
-        print('⚠️ Could not delete temp file: $e');
-      }
-      
     } catch (e) {
       print('❌ Detection error: $e');
       final errorMsg = e.toString();
       setState(() {
-        _detectionStatus = 'Error: ${errorMsg.length > 30 ? errorMsg.substring(0, 30) + '...' : errorMsg}';
+        _detectionStatus = 'Error: ${errorMsg.length > 30 ? '${errorMsg.substring(0, 30)}...' : errorMsg}';
       });
     } finally {
+      // Clean up temp file
+      if (imagePath != null) {
+        try {
+          await File(imagePath).delete();
+        } catch (e) {
+          print('⚠️ Could not delete temp file: $e');
+        }
+      }
+      
       if (mounted) {
         setState(() {
           _isDetecting = false;
         });
         
+        // Reset status after error
         if (_detectionStatus.contains('Error') || _detectionStatus.contains('timeout')) {
           Future.delayed(const Duration(seconds: 3), () {
             if (mounted) {
@@ -297,6 +240,81 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
           });
         }
       }
+    }
+  }
+  
+  /// Get time-based context for better AI insights
+  String _getTimeContext() {
+    final hour = DateTime.now().hour;
+    if (hour >= 5 && hour < 12) {
+      return 'morning_work';
+    } else if (hour >= 12 && hour < 17) {
+      return 'afternoon_work';
+    } else if (hour >= 17 && hour < 21) {
+      return 'evening_work';
+    } else {
+      return 'night_work';
+    }
+  }
+  
+  void _handleDetectionResult(Map<String, dynamic> result) {
+    if (result['objects_detected'] != null && result['objects_detected'] is List) {
+      final objectsList = result['objects_detected'] as List;
+      
+      if (objectsList.isNotEmpty) {
+        print('🎯 Found ${objectsList.length} objects: $objectsList');
+        
+        final mockDetections = DetectionResult(
+          objects: objectsList.asMap().entries.map((entry) {
+            final index = entry.key;
+            final label = entry.value.toString();
+            
+            return DetectedObject(
+              label: label,
+              confidence: (result['confidence'] as num?)?.toDouble() ?? 0.85,
+              boundingBox: BoundingBox(
+                x: 0.1,
+                y: 0.1 + (index * 0.18),
+                width: 0.8,
+                height: 0.15,
+              ),
+            );
+          }).toList(),
+          message: result['insight'] as String?,
+        );
+        
+        setState(() {
+          _currentDetections = mockDetections;
+          _detectionStatus = 'Detected ${objectsList.length} objects';
+        });
+        return;
+      }
+    }
+    
+    // Try parsing as DetectionResult
+    try {
+      final detections = DetectionResult.fromJson(result);
+      
+      if (detections.hasDetections) {
+        print('🎯 Found ${detections.detectionCount} objects with bounding boxes!');
+        
+        setState(() {
+          _currentDetections = detections;
+          _detectionStatus = 'Detected ${detections.detectionCount} objects';
+        });
+      } else {
+        print('👀 No objects detected');
+        setState(() {
+          _currentDetections = null;
+          _detectionStatus = result['insight'] as String? ?? 'No objects found';
+        });
+      }
+    } catch (e) {
+      print('⚠️ Could not parse detection: $e');
+      setState(() {
+        _currentDetections = null;
+        _detectionStatus = 'No objects found';
+      });
     }
   }
 

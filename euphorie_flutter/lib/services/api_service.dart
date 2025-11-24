@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'dart:typed_data';
+import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:camera/camera.dart';
+import 'package:image/image.dart' as img;
 
 class ApiService {
   static const String baseUrl = 'https://euphorie.com';
@@ -10,10 +12,15 @@ class ApiService {
   String? _userId;
   bool _isInitialized = false;
   
+  // Image compression settings
+  static const int maxImageWidth = 640;  // Resize to max 640px wide
+  static const int jpegQuality = 70;     // Compress to 70% quality
+  
   ApiService() {
     _dio.options.baseUrl = baseUrl;
-    _dio.options.connectTimeout = const Duration(seconds: 15);
-    _dio.options.receiveTimeout = const Duration(seconds: 15);
+    _dio.options.connectTimeout = const Duration(seconds: 30);  // Increased
+    _dio.options.receiveTimeout = const Duration(seconds: 60);  // Increased for AI processing
+    _dio.options.sendTimeout = const Duration(seconds: 30);     // Added send timeout
     _dio.options.headers = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
@@ -48,17 +55,113 @@ class ApiService {
     }
   }
   
+  /// Compress and resize image file for efficient upload
+  /// Returns base64 encoded compressed JPEG
+  Future<String> _compressImageFile(String filePath) async {
+    try {
+      final stopwatch = Stopwatch()..start();
+      
+      // Read original file
+      final originalBytes = await File(filePath).readAsBytes();
+      final originalSize = originalBytes.length;
+      print('📦 Original image size: ${(originalSize / 1024).toStringAsFixed(1)} KB');
+      
+      // Decode image
+      final image = img.decodeImage(originalBytes);
+      if (image == null) {
+        print('⚠️ Could not decode image, sending original');
+        return base64Encode(originalBytes);
+      }
+      
+      print('📐 Original dimensions: ${image.width}x${image.height}');
+      
+      // Resize if needed (maintain aspect ratio)
+      img.Image resized;
+      if (image.width > maxImageWidth) {
+        final ratio = maxImageWidth / image.width;
+        final newHeight = (image.height * ratio).round();
+        resized = img.copyResize(
+          image, 
+          width: maxImageWidth, 
+          height: newHeight,
+          interpolation: img.Interpolation.linear,
+        );
+        print('📐 Resized to: ${resized.width}x${resized.height}');
+      } else {
+        resized = image;
+        print('📐 No resize needed');
+      }
+      
+      // Encode as JPEG with compression
+      final compressedBytes = img.encodeJpg(resized, quality: jpegQuality);
+      final compressedSize = compressedBytes.length;
+      
+      stopwatch.stop();
+      
+      final compressionRatio = ((1 - compressedSize / originalSize) * 100).toStringAsFixed(1);
+      print('✅ Compressed: ${(compressedSize / 1024).toStringAsFixed(1)} KB '
+            '(${compressionRatio}% reduction) in ${stopwatch.elapsedMilliseconds}ms');
+      
+      return base64Encode(compressedBytes);
+    } catch (e) {
+      print('⚠️ Compression error: $e - sending original');
+      final originalBytes = await File(filePath).readAsBytes();
+      return base64Encode(originalBytes);
+    }
+  }
+  
+  /// Compress base64 image string
+  Future<String> _compressBase64Image(String base64Image) async {
+    try {
+      final stopwatch = Stopwatch()..start();
+      
+      // Decode base64
+      final originalBytes = base64Decode(base64Image);
+      final originalSize = originalBytes.length;
+      print('📦 Original base64 decoded size: ${(originalSize / 1024).toStringAsFixed(1)} KB');
+      
+      // Decode image
+      final image = img.decodeImage(originalBytes);
+      if (image == null) {
+        print('⚠️ Could not decode image, sending original');
+        return base64Image;
+      }
+      
+      // Resize if needed
+      img.Image resized;
+      if (image.width > maxImageWidth) {
+        final ratio = maxImageWidth / image.width;
+        final newHeight = (image.height * ratio).round();
+        resized = img.copyResize(
+          image, 
+          width: maxImageWidth, 
+          height: newHeight,
+          interpolation: img.Interpolation.linear,
+        );
+        print('📐 Resized: ${image.width}x${image.height} → ${resized.width}x${resized.height}');
+      } else {
+        resized = image;
+      }
+      
+      // Encode as JPEG
+      final compressedBytes = img.encodeJpg(resized, quality: jpegQuality);
+      
+      stopwatch.stop();
+      print('✅ Compression done in ${stopwatch.elapsedMilliseconds}ms');
+      
+      return base64Encode(compressedBytes);
+    } catch (e) {
+      print('⚠️ Compression error: $e');
+      return base64Image;
+    }
+  }
+  
   // Convert CameraImage to Base64
   String _cameraImageToBase64(CameraImage image) {
     try {
-      // Convert YUV420 to RGB (iOS uses this format)
       final int width = image.width;
       final int height = image.height;
-      
-      // For simplicity, use the Y plane (grayscale)
       final Uint8List bytes = image.planes[0].bytes;
-      
-      // Convert to base64
       return base64Encode(bytes);
     } catch (e) {
       print('⚠️ Error converting camera image: $e');
@@ -102,13 +205,7 @@ class ApiService {
         return null;
       }
     } on DioException catch (e) {
-      if (e.type == DioExceptionType.connectionTimeout) {
-        print('⚠️ Connection timeout - backend might be slow');
-      } else if (e.type == DioExceptionType.receiveTimeout) {
-        print('⚠️ Receive timeout - detection taking too long');
-      } else {
-        print('⚠️ Network error: ${e.message}');
-      }
+      _handleDioError(e);
       return null;
     } catch (e) {
       print('❌ Vision API error: $e');
@@ -116,7 +213,48 @@ class ApiService {
     }
   }
   
-  // Simplified detection for testing
+  /// Analyze vision from a file path (used by camera_screen)
+  /// This is the preferred method - handles compression automatically
+  Future<Map<String, dynamic>?> analyzeVisionFromFile({
+    required String filePath,
+    String context = 'flutter-realtime',
+  }) async {
+    await _ensureInitialized();
+    
+    try {
+      print('🎥 Processing image file: $filePath');
+      
+      // Compress the image before sending
+      final compressedBase64 = await _compressImageFile(filePath);
+      
+      print('📤 Sending compressed image (${(compressedBase64.length / 1024).toStringAsFixed(1)} KB base64)...');
+      
+      final response = await _dio.post(
+        '/api/vision/analyze',
+        data: {
+          'user_id': _userId,
+          'frame': 'data:image/jpeg;base64,$compressedBase64',
+          'context': context,
+        },
+      );
+      
+      if (response.statusCode == 200) {
+        print('✅ Analysis complete');
+        return response.data;
+      }
+      
+      print('⚠️ Unexpected status: ${response.statusCode}');
+      return null;
+    } on DioException catch (e) {
+      _handleDioError(e);
+      return null;
+    } catch (e) {
+      print('❌ Vision API error: $e');
+      return null;
+    }
+  }
+  
+  // Simplified detection (with compression)
   Future<Map<String, dynamic>?> analyzeVisionSimple({
     required String frameBase64,
     String context = 'test',
@@ -124,11 +262,20 @@ class ApiService {
     await _ensureInitialized();
     
     try {
+      // Compress if the image is large (> 100KB base64)
+      String processedBase64 = frameBase64;
+      if (frameBase64.length > 100000) {
+        print('🗜️ Large image detected, compressing...');
+        processedBase64 = await _compressBase64Image(frameBase64);
+      }
+      
+      print('📤 Sending to backend (${(processedBase64.length / 1024).toStringAsFixed(1)} KB)...');
+      
       final response = await _dio.post(
         '/api/vision/analyze',
         data: {
           'user_id': _userId,
-          'frame': frameBase64,
+          'frame': 'data:image/jpeg;base64,$processedBase64',
           'context': context,
         },
       );
@@ -136,20 +283,47 @@ class ApiService {
       if (response.statusCode == 200) {
         return response.data;
       }
+    } on DioException catch (e) {
+      _handleDioError(e);
     } catch (e) {
       print('Vision API error: $e');
     }
     return null;
   }
   
+  void _handleDioError(DioException e) {
+    switch (e.type) {
+      case DioExceptionType.connectionTimeout:
+        print('⚠️ Connection timeout - server might be slow or unreachable');
+        break;
+      case DioExceptionType.sendTimeout:
+        print('⚠️ Send timeout - image upload too slow (check network)');
+        break;
+      case DioExceptionType.receiveTimeout:
+        print('⚠️ Receive timeout - AI processing taking too long');
+        break;
+      case DioExceptionType.connectionError:
+        print('⚠️ Connection error - check internet connectivity');
+        break;
+      default:
+        print('⚠️ Network error: ${e.message}');
+    }
+  }
+  
   // Health Check
   Future<bool> checkHealth() async {
     try {
       print('🏥 Checking backend health...');
-      final response = await _dio.get('/health');
+      final response = await _dio.get(
+        '/health',
+        options: Options(
+          sendTimeout: const Duration(seconds: 10),
+          receiveTimeout: const Duration(seconds: 10),
+        ),
+      );
       
       if (response.statusCode == 200) {
-        print('✅ Backend is healthy');
+        print('✅ Backend is healthy: ${response.data}');
         return true;
       }
       return false;
@@ -255,8 +429,6 @@ class BoundingBox {
     );
   }
   
-  // Convert to Flutter Rect for drawing
-  // Note: Coordinates may need scaling based on camera vs screen size
   double get left => x;
   double get top => y;
   double get right => x + width;
