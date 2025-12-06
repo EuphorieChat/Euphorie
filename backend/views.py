@@ -8,7 +8,8 @@ import base64
 import io
 import time
 from PIL import Image
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 
@@ -219,6 +220,7 @@ vision_service = VisionService()
 # ============================================
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def health_check(request):
     """Health check endpoint"""
     return Response({
@@ -232,6 +234,7 @@ def health_check(request):
 
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def analyze_vision(request):
     """
     Main vision analysis endpoint
@@ -311,6 +314,7 @@ def analyze_vision(request):
 
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def quick_analysis(request):
     """Fast analysis for real-time streaming"""
     try:
