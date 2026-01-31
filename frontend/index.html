@@ -1814,7 +1814,7 @@
             backendUrl: window.location.hostname === 'localhost' 
                 ? 'http://localhost:8001' 
                 : 'https://euphorie.com',
-            creneNewsUrl: 'https://crene.com/api/news/feed',
+            creneNewsUrl: 'https://api-get.crene.com/api/articles/?page_size=20&lang=en',
             visionAnalysisInterval: 3000,
             newsPollingInterval: 30000,
             captureQuality: 0.8,
@@ -2703,10 +2703,14 @@
                 if (response.ok) {
                     const data = await response.json();
                     
-                    if (data.articles && Array.isArray(data.articles)) {
-                        console.log('✅ Crene news loaded:', data.articles.length, 'articles');
+                    if (data.results && Array.isArray(data.results)) {
+                        console.log('✅ Crene news loaded:', data.results.length, 'articles');
                         globalState.news.articles.clear();
-                        data.articles.forEach(article => {
+                        data.results.forEach(article => {
+                            // Add URL from slug for Crene articles
+                            if (!article.url && article.slug) {
+                                article.url = `https://crene.com/en/article/${article.slug}`;
+                            }
                             globalState.news.articles.set(article.id, article);
                         });
                         
@@ -2726,9 +2730,13 @@
                     const response = await fetch(CONFIG.creneNewsUrl);
                     if (response.ok) {
                         const data = await response.json();
-                        if (data.articles && Array.isArray(data.articles)) {
+                        if (data.results && Array.isArray(data.results)) {
                             let hasNewArticles = false;
-                            data.articles.forEach(article => {
+                            data.results.forEach(article => {
+                            // Add URL from slug for Crene articles
+                            if (!article.url && article.slug) {
+                                article.url = `https://crene.com/en/article/${article.slug}`;
+                            }
                                 if (!globalState.news.articles.has(article.id)) {
                                     globalState.news.articles.set(article.id, article);
                                     globalState.news.newArticleCount++;
@@ -3188,7 +3196,7 @@
     backendUrl: https://euphorie.com (production)
                 http://localhost:8001 (development)
     
-    creneNewsUrl: https://crene.com/api/news/feed
+    creneNewsUrl: https://api-get.crene.com/api/articles/?page_size=20&lang=en
     
     visionAnalysisInterval: 3000ms (3 seconds)
     newsPollingInterval: 30000ms (30 seconds)
