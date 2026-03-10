@@ -1,350 +1,219 @@
 """
-Euphorie AI Backend - Complete Views
-All API endpoints + AI vision service in one file!
+Euphorie v3 — API Views
 """
-
+import json
 import logging
-import base64
-import io
 import time
-from PIL import Image
+import stripe
+from django.conf import settings
+from django.http import HttpResponse
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 
-# AI/ML imports
-import torch
-from transformers import BlipProcessor, BlipForConditionalGeneration
+from .models import CreditPack, UserCredits, Interaction, CreditPurchase
+from .gemini_service import gemini_service
 
-logger = logging.getLogger('vision')
-
-# ============================================
-# AI Vision Service (Local BLIP Model)
-# ============================================
-
-class VisionService:
-    """Local AI Vision using BLIP model - No API costs!"""
-    
-    _instance = None
-    
-    def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-            cls._instance.initialized = False
-        return cls._instance
-    
-    def __init__(self):
-        if not self.initialized:
-            self.model = None
-            self.processor = None
-            self.device = "cuda" if torch.cuda.is_available() else "cpu"
-            self.is_loaded = False
-            self.model_name = "Salesforce/blip-image-captioning-base"
-            self.load_model()
-            self.initialized = True
-    
-    def load_model(self):
-        """Load BLIP model for image captioning"""
-        try:
-            logger.info(f"🤖 Loading BLIP model on {self.device}...")
-            
-            self.processor = BlipProcessor.from_pretrained(self.model_name)
-            self.model = BlipForConditionalGeneration.from_pretrained(
-                self.model_name
-            ).to(self.device)
-            
-            self.is_loaded = True
-            logger.info("✅ BLIP model loaded successfully!")
-            
-        except Exception as e:
-            logger.error(f"⚠️ Could not load BLIP model: {e}")
-            logger.info("Will use fallback descriptions")
-            self.is_loaded = False
-    
-    def analyze(self, image: Image.Image, context: str = "general"):
-        """
-        Analyze image and return structured response
-        
-        Returns dict with:
-        - insight: Human-readable description
-        - should_respond: Whether to show to user
-        - objects_detected: List of detected objects
-        - confidence: 0.0 to 1.0
-        - suggestions: List of helpful tips
-        """
-        try:
-            # Get AI description
-            description = self._get_description(image)
-            
-            # Determine if interesting enough to show
-            should_respond = self._should_respond(description, context)
-            
-            # Extract objects from description
-            objects = self._extract_objects(description)
-            
-            # Generate contextual insight
-            insight = self._generate_insight(description, context)
-            
-            # Calculate confidence
-            confidence = 0.85 if self.is_loaded else 0.6
-            
-            # Generate helpful suggestions
-            suggestions = self._generate_suggestions(description, context)
-            
-            return {
-                'insight': insight,
-                'should_respond': should_respond,
-                'objects_detected': objects,
-                'confidence': confidence,
-                'suggestions': suggestions,
-                'model_used': self.model_name if self.is_loaded else 'fallback'
-            }
-            
-        except Exception as e:
-            logger.error(f"Analysis error: {e}")
-            raise
-    
-    def _get_description(self, image: Image.Image):
-        """Get AI description of image"""
-        if self.is_loaded:
-            try:
-                # Resize if too large (for speed)
-                max_size = 512
-                if max(image.size) > max_size:
-                    ratio = max_size / max(image.size)
-                    new_size = tuple(int(dim * ratio) for dim in image.size)
-                    image = image.resize(new_size, Image.Resampling.LANCZOS)
-                
-                # Generate caption with BLIP
-                inputs = self.processor(image, return_tensors="pt").to(self.device)
-                
-                with torch.no_grad():
-                    outputs = self.model.generate(**inputs, max_length=50)
-                
-                caption = self.processor.decode(outputs[0], skip_special_tokens=True)
-                return caption
-                
-            except Exception as e:
-                logger.error(f"BLIP error: {e}, using fallback")
-                return self._fallback_description(image)
-        else:
-            return self._fallback_description(image)
-    
-    def _fallback_description(self, image: Image.Image):
-        """Simple fallback when model unavailable"""
-        width, height = image.size
-        grayscale = image.convert('L')
-        avg_brightness = sum(grayscale.getdata()) / (width * height)
-        
-        if avg_brightness < 50:
-            return "dark scene with low lighting"
-        elif avg_brightness < 150:
-            return "indoor scene with moderate lighting"
-        else:
-            return "bright scene with good lighting"
-    
-    def _should_respond(self, description: str, context: str):
-        """Decide if insight is interesting enough to show"""
-        interesting_keywords = [
-            'person', 'people', 'screen', 'monitor', 'laptop', 'computer',
-            'code', 'text', 'document', 'paper', 'book', 'phone', 'device',
-            'writing', 'typing', 'working', 'desk'
-        ]
-        
-        desc_lower = description.lower()
-        has_interesting = any(kw in desc_lower for kw in interesting_keywords)
-        
-        # Show if interesting, or 20% of the time randomly
-        return has_interesting or (hash(description) % 5 == 0)
-    
-    def _extract_objects(self, description: str):
-        """Extract object names from description"""
-        common_objects = [
-            'laptop', 'computer', 'monitor', 'screen', 'keyboard', 'mouse',
-            'phone', 'tablet', 'book', 'paper', 'desk', 'chair', 'window',
-            'person', 'hand', 'cup', 'mug', 'bottle', 'pen', 'notebook'
-        ]
-        
-        desc_lower = description.lower()
-        detected = [obj for obj in common_objects if obj in desc_lower]
-        return detected[:5]
-    
-    def _generate_insight(self, description: str, context: str):
-        """Generate contextual insight"""
-        desc_lower = description.lower()
-        
-        # Work session detected
-        if any(w in desc_lower for w in ['screen', 'monitor', 'computer', 'laptop']):
-            if context.startswith('morning'):
-                return f"Good morning! Starting your workday. {description} 💻"
-            elif context.startswith('afternoon'):
-                return f"Afternoon session! {description} 🚀"
-            elif context.startswith('evening'):
-                return f"Evening work. {description} Take breaks! ✨"
-            return f"Work session detected. {description}"
-        
-        # Coding detected
-        if any(w in desc_lower for w in ['code', 'programming', 'terminal', 'editor']):
-            return f"Coding session! {description} 👨‍💻"
-        
-        # Meeting/collaboration
-        if any(w in desc_lower for w in ['meeting', 'presentation', 'people']):
-            return f"Collaborative work. {description} 🤝"
-        
-        # Default
-        return description
-    
-    def _generate_suggestions(self, description: str, context: str):
-        """Generate helpful suggestions"""
-        suggestions = []
-        desc_lower = description.lower()
-        
-        if 'screen' in desc_lower:
-            suggestions.append("Take a 20-second break every 20 minutes (20-20-20 rule)")
-        
-        if context.startswith('evening'):
-            suggestions.append("Enable dark mode to reduce eye strain")
-        
-        if any(w in desc_lower for w in ['laptop', 'computer', 'desk']):
-            suggestions.append("Maintain good posture while working")
-        
-        return suggestions[:3]
-
-# Initialize vision service (singleton)
-vision_service = VisionService()
+logger = logging.getLogger(__name__)
+stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
-# ============================================
-# API Views
-# ============================================
+def get_or_create_credits(user):
+    credits, created = UserCredits.objects.get_or_create(user=user)
+    return credits
+
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def health_check(request):
-    """Health check endpoint"""
     return Response({
         'status': 'healthy',
-        'service': 'euphorie-vision-api',
-        'model_loaded': vision_service.is_loaded,
-        'model_name': vision_service.model_name,
-        'device': vision_service.device,
-        'timestamp': int(time.time())
+        'service': 'euphorie-v3',
+        'ai_ready': gemini_service.is_ready,
+        'timestamp': int(time.time()),
     })
 
 
 @api_view(['POST'])
-@permission_classes([AllowAny])
-def analyze_vision(request):
-    """
-    Main vision analysis endpoint
-    
-    Expects:
-    {
-        "user_id": "user_xxx",
-        "frame": "data:image/jpeg;base64,...",
-        "context": "morning_work"
-    }
-    """
-    try:
-        # Extract data
-        frame_data = request.data.get('frame')
-        user_id = request.data.get('user_id', 'anonymous')
-        context = request.data.get('context', 'general')
-        
-        if not frame_data:
-            return Response(
-                {'error': 'No frame data provided'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        logger.info(f"📸 Vision analysis from user: {user_id}")
-        
-        # Decode base64 image
-        try:
-            if ',' in frame_data:
-                frame_data = frame_data.split(',')[1]
-            
-            image_bytes = base64.b64decode(frame_data)
-            image = Image.open(io.BytesIO(image_bytes)).convert('RGB')
-            
-            logger.info(f"✅ Image decoded: {image.size}")
-            
-        except Exception as e:
-            logger.error(f"❌ Image decode error: {e}")
-            return Response(
-                {'error': 'Invalid image data'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        # Analyze with AI
-        try:
-            analysis = vision_service.analyze(image, context)
-            
-            logger.info(f"✅ Analysis complete: {analysis.get('insight')[:50]}...")
-            
-            # Return in expected format
-            return Response({
-                'success': True,
-                'insight': analysis['insight'],
-                'should_respond': analysis['should_respond'],
-                'objects_detected': analysis.get('objects_detected', []),
-                'confidence': analysis.get('confidence', 0.0),
-                'suggestions': analysis.get('suggestions', []),
-                'model_used': analysis.get('model_used', 'unknown'),
-                'timestamp': int(time.time())
-            })
-            
-        except Exception as e:
-            logger.error(f"❌ Analysis error: {e}")
-            return Response({
-                'success': False,
-                'insight': 'Analysis temporarily unavailable',
-                'should_respond': False,
-                'model_used': 'error',
-                'timestamp': int(time.time())
-            })
-    
-    except Exception as e:
-        logger.error(f"❌ Request error: {e}")
+@permission_classes([IsAuthenticated])
+def interact(request):
+    user = request.user
+    credits = get_or_create_credits(user)
+
+    if credits.balance <= 0:
+        return Response({
+            'error': 'no_credits',
+            'message': 'You have no credits remaining. Please purchase more to continue.',
+            'credits_remaining': 0,
+        }, status=status.HTTP_402_PAYMENT_REQUIRED)
+
+    text = request.data.get('text', '').strip()
+    image_b64 = request.data.get('image')
+
+    if not text and not image_b64:
         return Response(
-            {'error': str(e)},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            {'error': 'No input provided. Please speak or show something to the camera.'},
+            status=status.HTTP_400_BAD_REQUEST,
         )
+
+    result = gemini_service.analyze(text=text or 'What do you see?', image_b64=image_b64)
+
+    if result.get('error'):
+        return Response({
+            'response': result['text'],
+            'credits_remaining': credits.balance,
+            'processing_time_ms': result['time_ms'],
+            'error': True,
+        })
+
+    if not credits.deduct():
+        return Response({
+            'error': 'no_credits', 'message': 'Credit deduction failed.',
+            'credits_remaining': 0,
+        }, status=status.HTTP_402_PAYMENT_REQUIRED)
+
+    Interaction.objects.create(
+        user=user, user_text=text, image_sent=bool(image_b64),
+        ai_response=result['text'], ai_model=result['model'],
+        tokens_used=result['tokens'], processing_time_ms=result['time_ms'],
+    )
+
+    return Response({
+        'response': result['text'],
+        'credits_remaining': credits.balance,
+        'processing_time_ms': result['time_ms'],
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_credits(request):
+    credits = get_or_create_credits(request.user)
+    packs = CreditPack.objects.filter(is_active=True).values(
+        'id', 'name', 'credits', 'price_cents',
+    )
+    return Response({
+        'balance': credits.balance,
+        'total_purchased': credits.total_purchased,
+        'total_used': credits.total_used,
+        'packs': list(packs),
+    })
 
 
 @api_view(['POST'])
-@permission_classes([AllowAny])
-def quick_analysis(request):
-    """Fast analysis for real-time streaming"""
+@permission_classes([IsAuthenticated])
+def create_checkout(request):
+    pack_id = request.data.get('pack_id')
+    if not pack_id:
+        return Response({'error': 'pack_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+
     try:
-        frame_data = request.data.get('frame')
-        
-        if not frame_data:
-            return Response(
-                {'error': 'No frame data provided'},
-                status=status.HTTP_400_BAD_REQUEST
+        pack = CreditPack.objects.get(id=pack_id, is_active=True)
+    except CreditPack.DoesNotExist:
+        return Response({'error': 'Invalid pack'}, status=status.HTTP_404_NOT_FOUND)
+
+    user = request.user
+    credits = get_or_create_credits(user)
+
+    try:
+        if not credits.stripe_customer_id:
+            customer = stripe.Customer.create(
+                email=user.email, metadata={'user_id': user.id},
             )
-        
-        # Decode image
-        if ',' in frame_data:
-            frame_data = frame_data.split(',')[1]
-        
-        image_bytes = base64.b64decode(frame_data)
-        image = Image.open(io.BytesIO(image_bytes)).convert('RGB')
-        
-        # Quick description
-        description = vision_service._get_description(image)
-        
-        return Response({
-            'success': True,
-            'description': description,
-            'model_used': vision_service.model_name
-        })
-        
-    except Exception as e:
-        logger.error(f"Quick analysis error: {e}")
-        return Response(
-            {'error': str(e)},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            credits.stripe_customer_id = customer.id
+            credits.save(update_fields=['stripe_customer_id'])
+
+        session = stripe.checkout.Session.create(
+            customer=credits.stripe_customer_id,
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': 'usd',
+                    'product_data': {
+                        'name': f'Euphorie AI - {pack.name}',
+                        'description': f'{pack.credits} AI interactions',
+                    },
+                    'unit_amount': pack.price_cents,
+                },
+                'quantity': 1,
+            }],
+            mode='payment',
+            success_url=f'https://euphorie.com/?purchase=success&credits={pack.credits}',
+            cancel_url='https://euphorie.com/?purchase=cancelled',
+            metadata={
+                'user_id': str(user.id),
+                'pack_id': str(pack.id),
+                'credits': str(pack.credits),
+            },
         )
+
+        CreditPurchase.objects.create(
+            user=user, pack=pack, stripe_session_id=session.id,
+            amount_cents=pack.price_cents, credits_added=pack.credits, status='pending',
+        )
+
+        return Response({'checkout_url': session.url, 'session_id': session.id})
+
+    except Exception as e:
+        logger.error(f"Stripe error: {e}")
+        return Response(
+            {'error': 'Payment service error. Please try again.'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+@csrf_exempt
+def stripe_webhook(request):
+    payload = request.body
+    sig_header = request.META.get('HTTP_STRIPE_SIGNATURE', '')
+
+    if settings.STRIPE_WEBHOOK_SECRET:
+        try:
+            event = stripe.Webhook.construct_event(
+                payload, sig_header, settings.STRIPE_WEBHOOK_SECRET,
+            )
+        except (ValueError, stripe.error.SignatureVerificationError) as e:
+            logger.error(f"Webhook verification failed: {e}")
+            return HttpResponse(status=400)
+    else:
+        try:
+            event = json.loads(payload)
+        except json.JSONDecodeError:
+            return HttpResponse(status=400)
+
+    if event.get('type') == 'checkout.session.completed':
+        session_data = event['data']['object']
+        metadata = session_data.get('metadata', {})
+        user_id = metadata.get('user_id')
+        credits_to_add = int(metadata.get('credits', 0))
+
+        if user_id and credits_to_add:
+            try:
+                from django.contrib.auth.models import User
+                user = User.objects.get(id=user_id)
+                user_credits = get_or_create_credits(user)
+                user_credits.add(credits_to_add)
+                CreditPurchase.objects.filter(
+                    stripe_session_id=session_data.get('id'),
+                ).update(
+                    status='succeeded',
+                    stripe_payment_intent_id=session_data.get('payment_intent', ''),
+                )
+                logger.info(f"Added {credits_to_add} credits to user {user.email}")
+            except Exception as e:
+                logger.error(f"Webhook processing error: {e}")
+
+    return HttpResponse(status=200)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def interaction_history(request):
+    limit = min(int(request.query_params.get('limit', 20)), 100)
+    interactions = Interaction.objects.filter(user=request.user).values(
+        'id', 'user_text', 'image_sent', 'ai_response',
+        'ai_model', 'processing_time_ms', 'created_at',
+    )[:limit]
+    return Response({'interactions': list(interactions), 'count': len(interactions)})

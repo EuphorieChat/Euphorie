@@ -473,3 +473,78 @@ def logout_view(request):
         return Response({
             'message': 'Logout completed'
         }, status=status.HTTP_200_OK)
+
+@api_view(['POST', 'GET'])
+@permission_classes([AllowAny])
+def apple_web_callback(request):
+    """Handle Apple Sign In web callback (form_post)"""
+    import json
+    
+    # Apple POSTs: code, id_token, state, user (first time only)
+    id_token = request.POST.get('id_token') or request.data.get('id_token')
+    user_data = request.POST.get('user', '{}')
+    
+    if not id_token:
+        return Response({'error': 'No token received from Apple'}, status=400)
+    
+    try:
+        # Parse user info (only sent on first auth)
+        try:
+            apple_user = json.loads(user_data) if isinstance(user_data, str) else user_data
+        except:
+            apple_user = {}
+        
+        # Decode the id_token to get email and sub
+        jwks_client = PyJWKClient('https://appleid.apple.com/auth/keys')
+        signing_key = jwks_client.get_signing_key_from_jwt(id_token)
+        
+        decoded = jwt.decode(
+            id_token,
+            signing_key.key,
+            algorithms=['RS256'],
+            audience='com.euphorie.web',  # Web Services ID
+            issuer='https://appleid.apple.com'
+        )
+        
+        email = decoded.get('email')
+        apple_sub = decoded.get('sub')
+        
+        if not email:
+            email = f'{apple_sub}@appleid.privaterelay.com'
+        
+        # Get name from user data (first time only)
+        name_data = apple_user.get('name', {})
+        first_name = name_data.get('firstName', '')
+        last_name = name_data.get('lastName', '')
+        
+        # Get or create user
+        user, created = User.objects.get_or_create(
+            email=email,
+            defaults={
+                'username': email,
+                'first_name': first_name,
+                'last_name': last_name,
+            }
+        )
+        
+        tokens = get_tokens_for_user(user)
+        logger.info(f'✅ Apple Web Sign In: {email} (created: {created})')
+        
+        # Redirect back to frontend with tokens in URL fragment
+        from django.shortcuts import redirect
+        import urllib.parse
+        
+        params = urllib.parse.urlencode({
+            'access_token': tokens['access_token'],
+            'refresh_token': tokens['refresh_token'],
+            'user_id': tokens['user_id'],
+            'email': tokens['email'],
+            'display_name': tokens['display_name'],
+        })
+        
+        return redirect(f'https://euphorie.com/?apple_auth=success#{params}')
+        
+    except Exception as e:
+        logger.error(f'❌ Apple Web Callback error: {str(e)}')
+        from django.shortcuts import redirect
+        return redirect(f'https://euphorie.com/?apple_auth=error&message={str(e)}')
