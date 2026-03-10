@@ -6,7 +6,6 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:speech_to_text/speech_to_text.dart';
-import 'package:purchases_ui_flutter/purchases_ui_flutter.dart';
 import '../services/websocket_service.dart';
 import '../services/auth_service.dart';
 import '../services/revenue_cat_service.dart';
@@ -215,11 +214,87 @@ class _TerminalScreenState extends State<TerminalScreen> {
     try {
       final rc = RevenueCatService();
       if (rc.isInitialized == false) await rc.initialize();
-      await RevenueCatUI.presentPaywall();
+
+      if (rc.hasAnySubscription) {
+        _add(_Line.system('You are subscribed: ' + rc.currentTier.displayName));
+        _add(_Line.blank());
+        return;
+      }
+
+      await rc.loadOfferings();
+      final offerings = rc.offerings;
+      if (offerings?.current == null || offerings!.current!.availablePackages.isEmpty) {
+        _add(_Line.system('No subscription plans available yet.'));
+        _add(_Line.system('Visit https://euphorie.com for credits.'));
+        _add(_Line.blank());
+        return;
+      }
+
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: const Color(0xFF0a0e14),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Color(0xFF151b25))),
+          title: ShaderMask(
+            shaderCallback: (b) => const LinearGradient(colors: [Color(0xFFc4b5fd), Color(0xFFa78bfa)]).createShader(b),
+            child: const Text('Euphorie Pro', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white)),
+          ),
+          content: SizedBox(
+            width: 300,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Unlock unlimited AI agent access', style: TextStyle(color: Color(0xFF4a5568), fontSize: 13)),
+                const SizedBox(height: 16),
+                ...offerings.current!.availablePackages.map((pkg) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: GestureDetector(
+                    onTap: () async {
+                      Navigator.of(ctx).pop();
+                      _add(_Line.system('Processing purchase...'));
+                      final success = await rc.purchasePackage(pkg);
+                      if (success) {
+                        _add(_Line.system('Purchase successful! Welcome to Pro.'));
+                      } else {
+                        _add(_Line.system('Purchase cancelled or failed.'));
+                      }
+                      _add(_Line.blank());
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFa78bfa).withOpacity(0.3)),
+                        color: const Color(0xFF06080c),
+                      ),
+                      child: Row(children: [
+                        Expanded(child: Text(pkg.storeProduct.title, style: const TextStyle(color: Color(0xFFe2e8f0), fontSize: 14))),
+                        Text(pkg.storeProduct.priceString, style: const TextStyle(color: Color(0xFFa78bfa), fontSize: 14, fontWeight: FontWeight.w600)),
+                      ]),
+                    ),
+                  ),
+                )),
+                const SizedBox(height: 8),
+                GestureDetector(
+                  onTap: () async {
+                    Navigator.of(ctx).pop();
+                    _add(_Line.system('Restoring purchases...'));
+                    final restored = await rc.restorePurchases();
+                    _add(_Line.system(restored ? 'Purchases restored!' : 'No purchases found.'));
+                    _add(_Line.blank());
+                  },
+                  child: const Text('Restore Purchases', style: TextStyle(color: Color(0xFF4a5568), fontSize: 12)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
     } catch (e) {
       debugPrint('Paywall error: $e');
-      _add(_Line.system('Paywall not available on this device.'));
-      _add(_Line.system('Visit https://euphorie.com to purchase credits.'));
+      _add(_Line.system('Visit https://euphorie.com for credits.'));
       _add(_Line.blank());
     }
   }
