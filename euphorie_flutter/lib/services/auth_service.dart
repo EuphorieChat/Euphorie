@@ -145,17 +145,15 @@ class AuthService extends ChangeNotifier {
           'provider': 'email',
         };
 
-        if (data['access_token'] != null) {
-          await _secureStorage.write(
-            key: 'email_access_token',
-            value: data['access_token'],
-          );
-        }
-        if (data['refresh_token'] != null) {
-          await _secureStorage.write(
-            key: 'email_refresh_token',
-            value: data['refresh_token'],
-          );
+        try {
+          if (data['access_token'] != null) {
+            await _secureStorage.write(key: 'email_access_token', value: data['access_token']);
+          }
+          if (data['refresh_token'] != null) {
+            await _secureStorage.write(key: 'email_refresh_token', value: data['refresh_token']);
+          }
+        } catch (e) {
+          debugPrint('Secure storage write skipped: $e');
         }
 
         await _saveUserToStorage(userData, 'email');
@@ -218,17 +216,15 @@ class AuthService extends ChangeNotifier {
           'provider': 'email',
         };
 
-        if (data['access_token'] != null) {
-          await _secureStorage.write(
-            key: 'email_access_token',
-            value: data['access_token'],
-          );
-        }
-        if (data['refresh_token'] != null) {
-          await _secureStorage.write(
-            key: 'email_refresh_token',
-            value: data['refresh_token'],
-          );
+        try {
+          if (data['access_token'] != null) {
+            await _secureStorage.write(key: 'email_access_token', value: data['access_token']);
+          }
+          if (data['refresh_token'] != null) {
+            await _secureStorage.write(key: 'email_refresh_token', value: data['refresh_token']);
+          }
+        } catch (e) {
+          debugPrint('Secure storage write skipped: $e');
         }
 
         await _saveUserToStorage(userData, 'email');
@@ -375,6 +371,12 @@ class AuthService extends ChangeNotifier {
 
       debugPrint('🔐 Starting Microsoft Sign-In...');
 
+      if (!_isMicrosoftSupported()) {
+        _setError('Microsoft sign-in requires iOS or Android');
+        _setLoading(false);
+        return false;
+      }
+
       final AuthorizationTokenResponse? result = await _appAuth.authorizeAndExchangeCode(
         AuthorizationTokenRequest(
           AuthConfig.microsoftClientId,
@@ -475,6 +477,10 @@ class AuthService extends ChangeNotifier {
     }
   }
 
+  bool _isMicrosoftSupported() {
+    return defaultTargetPlatform == TargetPlatform.iOS || defaultTargetPlatform == TargetPlatform.android;
+  }
+
   // ============================================
   // SIGN OUT
   // ============================================
@@ -487,15 +493,19 @@ class AuthService extends ChangeNotifier {
 
       switch (_authProvider) {
         case 'google':
-          await _googleSignIn.signOut();
+          try { await _googleSignIn.signOut(); } catch (_) {}
           break;
         case 'microsoft':
-          await _secureStorage.delete(key: 'microsoft_access_token');
-          await _secureStorage.delete(key: 'microsoft_refresh_token');
+          try {
+            await _secureStorage.delete(key: 'microsoft_access_token');
+            await _secureStorage.delete(key: 'microsoft_refresh_token');
+          } catch (_) {}
           break;
         case 'email':
-          await _secureStorage.delete(key: 'email_access_token');
-          await _secureStorage.delete(key: 'email_refresh_token');
+          try {
+            await _secureStorage.delete(key: 'email_access_token');
+            await _secureStorage.delete(key: 'email_refresh_token');
+          } catch (_) {}
           break;
         case 'apple':
           break;
