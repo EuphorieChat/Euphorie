@@ -15,11 +15,10 @@ class RevenueCatService extends ChangeNotifier {
   static const String premiumEntitlementId = 'premium_features';
   static const String proEntitlementId = 'pro_features';
 
-  // Product IDs (must match App Store Connect & Play Console)
-  static const String premiumMonthlyId = 'euphorie_premium_monthly';
-  static const String premiumYearlyId = 'euphorie_premium_yearly';
-  static const String proMonthlyId = 'euphorie_pro_monthly';
-  static const String proYearlyId = 'euphorie_pro_yearly';
+  // Credit Pack Product IDs (must match App Store Connect & Play Console)
+  static const String credits50Id = 'euphorie_credits_50';
+  static const String credits150Id = 'euphorie_credits_150';
+  static const String credits500Id = 'euphorie_credits_500';
 
   CustomerInfo? _customerInfo;
   Offerings? _offerings;
