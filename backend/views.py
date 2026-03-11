@@ -217,3 +217,13 @@ def interaction_history(request):
         'ai_model', 'processing_time_ms', 'created_at',
     )[:limit]
     return Response({'interactions': list(interactions), 'count': len(interactions)})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def deduct_credit(request):
+    credits = get_or_create_credits(request.user)
+    if credits.balance <= 0:
+        return Response({'error': 'no_credits'}, status=status.HTTP_402_PAYMENT_REQUIRED)
+    credits.deduct()
+    return Response({'balance': credits.balance})

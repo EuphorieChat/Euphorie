@@ -28,4 +28,5 @@ urlpatterns = [
     path('api/v1/credits/purchase/', views.create_checkout, name='create_checkout'),
     path('api/v1/webhooks/stripe/', views.stripe_webhook, name='stripe_webhook'),
     path('api/v1/history/', views.interaction_history, name='interaction_history'),
+    path('api/v1/credits/deduct/', views.deduct_credit, name='deduct_credit'),
 ]

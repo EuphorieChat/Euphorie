@@ -407,7 +407,7 @@ function streamLines(lines, onDone) {
 // ============================================
 // COMMAND HANDLER (WebSocket)
 // ============================================
-function runCommand(cmd) {
+async function runCommand(cmd) {
   if (isProcessing || !cmd.trim()) return;
   const trimmed = cmd.trim();
   const lower = trimmed.toLowerCase();
@@ -433,15 +433,39 @@ function runCommand(cmd) {
     return;
   }
 
-  // Send to adapter via WebSocket
+  // Send to adapter via WebSocket (with credit gate)
   if (ws && ws.readyState === WebSocket.OPEN) {
     isProcessing = true;
-    document.getElementById('cmd-input').disabled = true;
-    ws.send(JSON.stringify({ type: 'command', text: trimmed }));
+    document.getElementById("cmd-input").disabled = true;
+    try {
+      const res = await apiFetch("/api/v1/credits/deduct/", { method: "POST" });
+      if (res.ok) {
+        credits--;
+        updateCreditsDisplay();
+        ws.send(JSON.stringify({ type: "command", text: trimmed }));
+      } else {
+        isProcessing = false;
+        document.getElementById("cmd-input").disabled = false;
+        document.getElementById("no-credits-overlay").classList.add("show");
+      }
+    } catch(e) {
+      isProcessing = false;
+      document.getElementById("cmd-input").disabled = false;
+      addLine("system", "Credit check failed. Try again.");
+    }
   } else {
-    addLine('system', 'Not connected to agent runtime. Reconnecting...');
+    addLine("system", "Not connected to agent runtime. Reconnecting...");
     connectWebSocket();
   }
+
+
+
+
+
+
+
+
+
 }
 
 // ============================================
