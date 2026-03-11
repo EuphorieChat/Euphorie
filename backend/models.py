@@ -29,7 +29,7 @@ class CreditPack(models.Model):
 
 class UserCredits(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='credits')
-    balance = models.IntegerField(default=5)
+    balance = models.IntegerField(default=0)
     stripe_customer_id = models.CharField(max_length=100, blank=True)
     total_purchased = models.IntegerField(default=0)
     total_used = models.IntegerField(default=0)
