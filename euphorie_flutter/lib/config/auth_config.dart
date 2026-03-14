@@ -35,7 +35,7 @@ class AuthConfig {
   // ============================================
   // Your existing Azure AD credentials
   static const String microsoftClientId = 'f8d15ce5-2c27-41cf-a8db-1e7c84ec0c11';
-  static const String microsoftTenantId = '49a31049-7b61-4fae-bce8-5e9a2ce13434';
+  static const String microsoftTenantId = 'common';
   
   // iOS Redirect URI (must match Info.plist CFBundleURLSchemes)
   static const String microsoftRedirectUriIOS = 'msauth.com.euphorie.app://auth';

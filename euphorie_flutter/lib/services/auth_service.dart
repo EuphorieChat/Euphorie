@@ -64,30 +64,9 @@ class AuthService extends ChangeNotifier {
       _user = userData;
       _authProvider = provider;
       
-      // Optional: Save to backend
-      if (AuthConfig.enableBackendSync) {
-        await _syncUserToBackend(userData);
-      }
-      
       debugPrint('✅ User saved to storage');
     } catch (e) {
       debugPrint('⚠️ Error saving user to storage: $e');
-    }
-  }
-
-  Future<void> _syncUserToBackend(Map<String, dynamic> userData) async {
-    try {
-      final response = await http.post(
-        Uri.parse('${AuthConfig.backendUrl}/api/auth/sync'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(userData),
-      );
-      
-      if (response.statusCode == 200) {
-        debugPrint('✅ User synced to backend');
-      }
-    } catch (e) {
-      debugPrint('⚠️ Backend sync failed (continuing anyway): $e');
     }
   }
 
@@ -104,6 +83,31 @@ class AuthService extends ChangeNotifier {
   void clearError() {
     _errorMessage = null;
     notifyListeners();
+  }
+
+
+  /// Send social auth credentials to backend, get JWT tokens back.
+  Future<Map<String, dynamic>?> _backendSocialAuth(
+    String endpoint,
+    Map<String, dynamic> body,
+  ) async {
+    try {
+      final response = await http.post(
+        Uri.parse('${AuthConfig.backendUrl}$endpoint'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(body),
+      );
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return jsonDecode(response.body);
+      } else {
+        final err = jsonDecode(response.body);
+        debugPrint('Backend social auth error: ${err["error"]}');
+        return null;
+      }
+    } catch (e) {
+      debugPrint('Backend social auth exception: $e');
+      return null;
+    }
   }
 
   // ============================================
@@ -263,36 +267,57 @@ class AuthService extends ChangeNotifier {
       _setLoading(true);
       _setError(null);
 
-      debugPrint('🔐 Starting Google Sign-In...');
+      debugPrint('Starting Google Sign-In...');
 
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
 
       if (googleUser == null) {
-        debugPrint('⚠️ Google sign-in cancelled by user');
+        debugPrint('Google sign-in cancelled by user');
         _setLoading(false);
         return false;
       }
 
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
 
-      debugPrint('✅ Google sign-in successful: ${googleUser.email}');
+      debugPrint('Google OAuth complete: ${googleUser.email}');
+
+      // Send to backend for user creation + JWT
+      final data = await _backendSocialAuth('/api/auth/google/', {
+        'id_token': googleAuth.idToken,
+        'access_token': googleAuth.accessToken,
+        'email': googleUser.email,
+        'displayName': googleUser.displayName ?? '',
+      });
+
+      if (data == null) {
+        _setError('Google sign-in failed. Please try again.');
+        return false;
+      }
 
       final userData = {
-        'id': googleUser.id,
-        'email': googleUser.email,
-        'displayName': googleUser.displayName,
+        'id': data['user_id'].toString(),
+        'email': data['email'],
+        'displayName': data['display_name'] ?? googleUser.displayName ?? googleUser.email.split('@')[0],
         'photoURL': googleUser.photoUrl,
-        'accessToken': googleAuth.accessToken,
-        'idToken': googleAuth.idToken,
+        'accessToken': data['access_token'],
+        'refreshToken': data['refresh_token'],
         'provider': 'google',
       };
+
+      try {
+        await _secureStorage.write(key: 'access_token', value: data['access_token']);
+        await _secureStorage.write(key: 'refresh_token', value: data['refresh_token']);
+      } catch (e) {
+        debugPrint('Secure storage write skipped: $e');
+      }
 
       await _saveUserToStorage(userData, 'google');
       notifyListeners();
 
+      debugPrint('Google sign-in complete: ${data['email']}');
       return true;
     } catch (e) {
-      debugPrint('❌ Google sign-in error: $e');
+      debugPrint('Google sign-in error: $e');
       _setError('Google sign-in failed. Please try again.');
       return false;
     } finally {
@@ -309,7 +334,7 @@ class AuthService extends ChangeNotifier {
       _setLoading(true);
       _setError(null);
 
-      debugPrint('🔐 Starting Apple Sign-In...');
+      debugPrint('Starting Apple Sign-In...');
 
       final isAvailable = await SignInWithApple.isAvailable();
       if (!isAvailable) {
@@ -325,30 +350,51 @@ class AuthService extends ChangeNotifier {
         ],
       );
 
-      debugPrint('✅ Apple sign-in successful');
+      debugPrint('Apple OAuth complete');
 
       final displayName = credential.givenName != null || credential.familyName != null
           ? '${credential.givenName ?? ''} ${credential.familyName ?? ''}'.trim()
           : null;
 
-      final userData = {
-        'id': credential.userIdentifier,
-        'email': credential.email ?? 'apple_user_${credential.userIdentifier}',
-        'displayName': displayName,
+      // Send identity token to backend for JWT verification + user creation
+      final data = await _backendSocialAuth('/api/auth/apple/', {
         'identityToken': credential.identityToken,
-        'authorizationCode': credential.authorizationCode,
+        'email': credential.email,
+        'displayName': displayName ?? '',
+        'apple_user_id': credential.userIdentifier,
+      });
+
+      if (data == null) {
+        _setError('Apple sign-in failed. Please try again.');
+        return false;
+      }
+
+      final userData = {
+        'id': data['user_id'].toString(),
+        'email': data['email'],
+        'displayName': data['display_name'] ?? displayName ?? data['email'].split('@')[0],
+        'accessToken': data['access_token'],
+        'refreshToken': data['refresh_token'],
         'provider': 'apple',
       };
+
+      try {
+        await _secureStorage.write(key: 'access_token', value: data['access_token']);
+        await _secureStorage.write(key: 'refresh_token', value: data['refresh_token']);
+      } catch (e) {
+        debugPrint('Secure storage write skipped: $e');
+      }
 
       await _saveUserToStorage(userData, 'apple');
       notifyListeners();
 
+      debugPrint('Apple sign-in complete: ${data['email']}');
       return true;
     } catch (e) {
-      debugPrint('❌ Apple sign-in error: $e');
+      debugPrint('Apple sign-in error: $e');
 
       if (e.toString().contains('1001') || e.toString().contains('canceled')) {
-        debugPrint('⚠️ Apple sign-in cancelled by user');
+        debugPrint('Apple sign-in cancelled by user');
         _setLoading(false);
         return false;
       }
@@ -369,7 +415,7 @@ class AuthService extends ChangeNotifier {
       _setLoading(true);
       _setError(null);
 
-      debugPrint('🔐 Starting Microsoft Sign-In...');
+      debugPrint('Starting Microsoft Sign-In...');
 
       if (!_isMicrosoftSupported()) {
         _setError('Microsoft sign-in requires iOS or Android');
@@ -380,14 +426,14 @@ class AuthService extends ChangeNotifier {
       final AuthorizationTokenResponse? result = await _appAuth.authorizeAndExchangeCode(
         AuthorizationTokenRequest(
           AuthConfig.microsoftClientId,
-          defaultTargetPlatform == TargetPlatform.iOS 
-              ? AuthConfig.microsoftRedirectUriIOS 
+          defaultTargetPlatform == TargetPlatform.iOS
+              ? AuthConfig.microsoftRedirectUriIOS
               : AuthConfig.microsoftRedirectUriAndroid,
-          serviceConfiguration: AuthorizationServiceConfiguration(
-            authorizationEndpoint: 
-                'https://login.microsoftonline.com/${AuthConfig.microsoftTenantId}/oauth2/v2.0/authorize',
-            tokenEndpoint: 
-                'https://login.microsoftonline.com/${AuthConfig.microsoftTenantId}/oauth2/v2.0/token',
+          serviceConfiguration: const AuthorizationServiceConfiguration(
+            authorizationEndpoint:
+                'https://login.microsoftonline.com/common/oauth2/v2.0/authorize',
+            tokenEndpoint:
+                'https://login.microsoftonline.com/common/oauth2/v2.0/token',
           ),
           scopes: ['openid', 'profile', 'email', 'offline_access', 'User.Read'],
           promptValues: ['login'],
@@ -395,85 +441,58 @@ class AuthService extends ChangeNotifier {
       );
 
       if (result == null) {
-        debugPrint('⚠️ Microsoft sign-in cancelled by user');
+        debugPrint('Microsoft sign-in cancelled by user');
         _setLoading(false);
         return false;
       }
 
-      debugPrint('✅ Microsoft access token obtained');
+      debugPrint('Microsoft OAuth complete, sending to backend...');
 
-      if (result.accessToken != null) {
-        await _secureStorage.write(
-          key: 'microsoft_access_token',
-          value: result.accessToken,
-        );
-      }
-      if (result.refreshToken != null) {
-        await _secureStorage.write(
-          key: 'microsoft_refresh_token',
-          value: result.refreshToken,
-        );
-      }
+      // Send access token to backend for MS Graph verification + user creation
+      final data = await _backendSocialAuth('/api/auth/microsoft/', {
+        'access_token': result.accessToken,
+      });
 
-      final userInfo = await _getMicrosoftUserInfo(result.accessToken!);
-
-      if (userInfo == null) {
-        _setError('Failed to get user information');
-        _setLoading(false);
+      if (data == null) {
+        _setError('Microsoft sign-in failed. Please try again.');
         return false;
       }
-
-      debugPrint('✅ Microsoft sign-in successful: ${userInfo['mail'] ?? userInfo['userPrincipalName']}');
 
       final userData = {
-        'id': userInfo['id'],
-        'email': userInfo['mail'] ?? userInfo['userPrincipalName'],
-        'displayName': userInfo['displayName'],
-        'accessToken': result.accessToken,
-        'refreshToken': result.refreshToken,
+        'id': data['user_id'].toString(),
+        'email': data['email'],
+        'displayName': data['display_name'] ?? data['email'].split('@')[0],
+        'accessToken': data['access_token'],
+        'refreshToken': data['refresh_token'],
         'provider': 'microsoft',
       };
+
+      try {
+        await _secureStorage.write(key: 'access_token', value: data['access_token']);
+        await _secureStorage.write(key: 'refresh_token', value: data['refresh_token']);
+      } catch (e) {
+        debugPrint('Secure storage write skipped: $e');
+      }
 
       await _saveUserToStorage(userData, 'microsoft');
       notifyListeners();
 
+      debugPrint('Microsoft sign-in complete: ${data['email']}');
       return true;
     } catch (e) {
-      debugPrint('❌ Microsoft sign-in error: $e');
-      
-      if (e.toString().contains('User cancelled') || 
+      debugPrint('Microsoft sign-in error: $e');
+
+      if (e.toString().contains('User cancelled') ||
           e.toString().contains('CANCELED')) {
-        debugPrint('⚠️ Microsoft sign-in cancelled by user');
+        debugPrint('Microsoft sign-in cancelled by user');
         _setLoading(false);
         return false;
       }
-      
+
       _setError('Microsoft sign-in failed. Please try again.');
       return false;
     } finally {
       _setLoading(false);
-    }
-  }
-
-  Future<Map<String, dynamic>?> _getMicrosoftUserInfo(String accessToken) async {
-    try {
-      final response = await http.get(
-        Uri.parse('https://graph.microsoft.com/v1.0/me'),
-        headers: {
-          'Authorization': 'Bearer $accessToken',
-          'Content-Type': 'application/json',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
-      } else {
-        debugPrint('❌ Failed to get user info: ${response.statusCode}');
-        return null;
-      }
-    } catch (e) {
-      debugPrint('❌ Error getting user info: $e');
-      return null;
     }
   }
 
