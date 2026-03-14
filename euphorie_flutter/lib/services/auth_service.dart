@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
-import 'package:flutter_appauth/flutter_appauth.dart';
+import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
@@ -20,7 +20,6 @@ class AuthService extends ChangeNotifier {
     scopes: ['email', 'profile'],
   );
   
-  final FlutterAppAuth _appAuth = const FlutterAppAuth();
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
 
   Map<String, dynamic>? _user;
@@ -417,40 +416,47 @@ class AuthService extends ChangeNotifier {
 
       debugPrint('Starting Microsoft Sign-In...');
 
-      if (!_isMicrosoftSupported()) {
-        _setError('Microsoft sign-in requires iOS or Android');
-        _setLoading(false);
-        return false;
-      }
+      final String redirectUri = defaultTargetPlatform == TargetPlatform.iOS
+          ? AuthConfig.microsoftRedirectUriIOS
+          : AuthConfig.microsoftRedirectUriAndroid;
 
-      final AuthorizationTokenResponse? result = await _appAuth.authorizeAndExchangeCode(
-        AuthorizationTokenRequest(
-          AuthConfig.microsoftClientId,
-          defaultTargetPlatform == TargetPlatform.iOS
-              ? AuthConfig.microsoftRedirectUriIOS
-              : AuthConfig.microsoftRedirectUriAndroid,
-          serviceConfiguration: const AuthorizationServiceConfiguration(
-            authorizationEndpoint:
-                'https://login.microsoftonline.com/common/oauth2/v2.0/authorize',
-            tokenEndpoint:
-                'https://login.microsoftonline.com/common/oauth2/v2.0/token',
-          ),
-          scopes: ['openid', 'profile', 'email', 'offline_access', 'User.Read'],
-          promptValues: ['login'],
-        ),
+      final String callbackScheme = defaultTargetPlatform == TargetPlatform.iOS
+          ? 'msauth.com.euphorie.app'
+          : 'msauth';
+
+      final String authUrl = Uri.https(
+        'login.microsoftonline.com',
+        '/common/oauth2/v2.0/authorize',
+        {
+          'client_id': AuthConfig.microsoftClientId,
+          'response_type': 'code',
+          'redirect_uri': redirectUri,
+          'scope': 'openid profile email offline_access User.Read',
+          'response_mode': 'query',
+          'prompt': 'select_account',
+        },
+      ).toString();
+
+      final result = await FlutterWebAuth2.authenticate(
+        url: authUrl,
+        callbackUrlScheme: callbackScheme,
       );
 
-      if (result == null) {
-        debugPrint('Microsoft sign-in cancelled by user');
+      final uri = Uri.parse(result);
+      final code = uri.queryParameters['code'];
+
+      if (code == null) {
+        debugPrint('Microsoft sign-in: no code returned');
         _setLoading(false);
         return false;
       }
 
-      debugPrint('Microsoft OAuth complete, sending to backend...');
+      debugPrint('Microsoft auth code received, sending to backend...');
 
-      // Send access token to backend for MS Graph verification + user creation
+      // Send auth code to backend for token exchange + user creation
       final data = await _backendSocialAuth('/api/auth/microsoft/', {
-        'access_token': result.accessToken,
+        'code': code,
+        'redirect_uri': redirectUri,
       });
 
       if (data == null) {
@@ -471,19 +477,18 @@ class AuthService extends ChangeNotifier {
         await _secureStorage.write(key: 'access_token', value: data['access_token']);
         await _secureStorage.write(key: 'refresh_token', value: data['refresh_token']);
       } catch (e) {
-        debugPrint('Secure storage write skipped: $e');
+        debugPrint('Secure storage write skipped: \$e');
       }
 
       await _saveUserToStorage(userData, 'microsoft');
       notifyListeners();
 
-      debugPrint('Microsoft sign-in complete: ${data['email']}');
+      debugPrint('Microsoft sign-in complete: \${data["email"]}');
       return true;
     } catch (e) {
-      debugPrint('Microsoft sign-in error: $e');
+      debugPrint('Microsoft sign-in error: \$e');
 
-      if (e.toString().contains('User cancelled') ||
-          e.toString().contains('CANCELED')) {
+      if (e.toString().contains('CANCELED') || e.toString().contains('canceled')) {
         debugPrint('Microsoft sign-in cancelled by user');
         _setLoading(false);
         return false;
@@ -496,9 +501,6 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-  bool _isMicrosoftSupported() {
-    return defaultTargetPlatform == TargetPlatform.iOS || defaultTargetPlatform == TargetPlatform.android;
-  }
 
   // ============================================
   // SIGN OUT
