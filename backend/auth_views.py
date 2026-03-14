@@ -343,18 +343,49 @@ def google_sign_in(request):
 def microsoft_sign_in(request):
     """Handle Microsoft Sign In"""
     try:
-        # ✅ Flutter sends accessToken
         access_token = request.data.get('accessToken') or request.data.get('access_token')
+        code = request.data.get('code')
+        redirect_uri = request.data.get('redirect_uri', '')
         email = request.data.get('email')
         display_name = request.data.get('displayName', '')
-        
-        if not access_token:
+
+        if not access_token and not code:
             return Response(
-                {'error': 'Access token is required'},
+                {'error': 'Access token or auth code is required'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
-        # Verify Microsoft token
+
+        # If we got an auth code, exchange it for an access token
+        if code and not access_token:
+            try:
+                token_resp = requests.post(
+                    'https://login.microsoftonline.com/common/oauth2/v2.0/token',
+                    data={
+                        'client_id': 'f8d15ce5-2c27-41cf-a8db-1e7c84ec0c11',
+                        'scope': 'openid profile email User.Read',
+                        'code': code,
+                        'redirect_uri': redirect_uri,
+                        'grant_type': 'authorization_code',
+                    },
+                    timeout=10
+                )
+                if token_resp.status_code == 200:
+                    token_data = token_resp.json()
+                    access_token = token_data.get('access_token')
+                else:
+                    logger.error(f'Microsoft token exchange failed: {token_resp.text}')
+                    return Response(
+                        {'error': 'Microsoft token exchange failed'},
+                        status=status.HTTP_401_UNAUTHORIZED
+                    )
+            except Exception as e:
+                logger.error(f'Microsoft token exchange error: {str(e)}')
+                return Response(
+                    {'error': 'Microsoft token exchange failed'},
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+
+        # Verify Microsoft token via Graph API
         try:
             response = requests.get(
                 'https://graph.microsoft.com/v1.0/me',
