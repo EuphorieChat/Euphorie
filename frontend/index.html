@@ -13,6 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <!-- Google Identity Services -->
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js"></script>
 <!-- Microsoft MSAL -->
 <script src="https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js"></script>
 <style>
@@ -600,7 +601,37 @@ function authGoogle() {
 // ============================================
 // APPLE AUTH
 // ============================================
-function authApple() { showAuthError("Apple sign-in is available on the mobile app."); }
+async function authApple() {
+  const btn = document.getElementById('apple-btn');
+  btn.disabled = true;
+  btn.textContent = 'Signing in...';
+  try {
+    AppleID.auth.init({
+      clientId: 'com.euphorie.web',
+      scope: 'name email',
+      redirectURI: 'https://euphorie.com/accounts/apple/login/callback/',
+      state: Math.random().toString(36).substring(2),
+      usePopup: true,
+    });
+    const response = await AppleID.auth.signIn();
+    const idToken = response.authorization.id_token;
+    const userData = response.user || {};
+    const res = await fetch(API + '/api/auth/apple/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id_token: idToken,
+        email: userData.email || '',
+        displayName: userData.name ? (userData.name.firstName || '') + ' ' + (userData.name.lastName || '') : '',
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Apple auth failed');
+    handleAuthSuccess(data);
+  } catch (err) {
+    if (err.error !== 'popup_closed_by_user') showAuthError(err.message || 'Apple sign-in failed');
+  } finally { resetBtn(btn, 'Continue with Apple'); }
+}
 
 // ============================================
 // MICROSOFT AUTH

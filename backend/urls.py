@@ -16,6 +16,7 @@ urlpatterns = [
     path('api/auth/login/', auth_views.login, name='login'),
     path('api/auth/apple/', auth_views.apple_sign_in, name='apple_sign_in'),
     path('api/auth/apple/callback/', auth_views.apple_web_callback, name='apple_web_callback'),
+    path('accounts/apple/login/callback/', auth_views.apple_web_callback, name='apple_web_callback_legacy'),
     path('api/auth/google/', auth_views.google_sign_in, name='google_sign_in'),
     path('api/auth/microsoft/', auth_views.microsoft_sign_in, name='microsoft_sign_in'),
     path('api/auth/refresh/', auth_views.refresh_token, name='refresh_token'),

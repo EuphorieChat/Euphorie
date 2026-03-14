@@ -13,6 +13,8 @@ from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 import requests
 import jwt
+import uuid
+from django.db import IntegrityError
 from jwt import PyJWKClient
 import logging
 
@@ -30,6 +32,39 @@ def get_tokens_for_user(user):
         'display_name': user.get_full_name() or user.email.split('@')[0],  # ✅ Added for Flutter
     }
 
+
+
+def _get_or_create_user(email, first_name='', last_name=''):
+    """Get or create user with duplicate username handling."""
+    email = email.lower().strip()
+    try:
+        user = User.objects.filter(email=email).first()
+        if user:
+            return user, False
+    except User.DoesNotExist:
+        pass
+    username = email
+    for attempt in range(5):
+        try:
+            user = User.objects.create_user(
+                username=username,
+                email=email,
+                first_name=first_name,
+                last_name=last_name,
+                password=None,
+            )
+            return user, True
+        except IntegrityError:
+            username = f"{email.split('@')[0]}_{uuid.uuid4().hex[:6]}@{email.split('@')[1]}"
+    username = f"user_{uuid.uuid4().hex[:8]}"
+    user = User.objects.create_user(
+        username=username,
+        email=email,
+        first_name=first_name,
+        last_name=last_name,
+        password=None,
+    )
+    return user, True
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -136,82 +171,96 @@ def login(request):
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
-
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def apple_sign_in(request):
-    """Handle Apple Sign In"""
+    """
+    Handle Apple Sign In from Flutter.
+    Uses JWT sub claim as stable identifier since Apple may hide email.
+    """
     try:
-        # ✅ Flutter sends both identityToken and user data
         id_token = request.data.get('identityToken') or request.data.get('id_token')
         email = request.data.get('email')
         display_name = request.data.get('displayName', '')
-        
+        client_apple_user_id = request.data.get('apple_user_id', '')
+
         if not id_token:
             return Response(
                 {'error': 'ID token is required'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         # Verify Apple ID token
         try:
             jwks_client = PyJWKClient('https://appleid.apple.com/auth/keys')
             signing_key = jwks_client.get_signing_key_from_jwt(id_token)
-            
+
             decoded_token = jwt.decode(
                 id_token,
                 signing_key.key,
                 algorithms=['RS256'],
-                audience='com.euphorie.app',  # ✅ Your bundle ID
+                audience=['com.euphorie.app', 'com.euphorie.web'],
                 issuer='https://appleid.apple.com'
             )
-            
-            # Email might be in token or request data (first time only)
+
+            apple_sub = decoded_token.get('sub')
             token_email = decoded_token.get('email')
-            email = email or token_email
-            apple_user_id = decoded_token.get('sub')
-            
-            if not email:
-                # ✅ Use apple_user_id as fallback
-                email = f'{apple_user_id}@appleid.privaterelay.com'
-            
+
         except Exception as e:
-            logger.error(f'❌ Apple token verification failed: {str(e)}')
+            logger.error(f'Apple token verification failed: {str(e)}')
             return Response(
                 {'error': 'Invalid Apple ID token'},
                 status=status.HTTP_401_UNAUTHORIZED
             )
-        
-        # Parse display name
-        name_parts = display_name.split() if display_name else []
-        first_name = name_parts[0] if name_parts else ''
-        last_name = ' '.join(name_parts[1:]) if len(name_parts) > 1 else ''
-        
-        # Get or create user
-        user, created = User.objects.get_or_create(
-            email=email,
-            defaults={
-                'username': email,
-                'first_name': first_name,
-                'last_name': last_name,
-            }
-        )
-        
+
+        # Build lookup email (Apple may not send email after first login)
+        lookup_email = email or token_email or f'apple_{apple_sub}@privaterelay.euphorie.com'
+
+        # Stable lookup: try apple_sub username first, then email
+        apple_username = f'apple_{apple_sub}'
+        user = None
+        created = False
+
+        try:
+            user = User.objects.get(username=apple_username)
+        except User.DoesNotExist:
+            try:
+                user = User.objects.get(email=lookup_email)
+                # Migrate to sub-based username for future lookups
+                if not user.username.startswith('apple_'):
+                    user.username = apple_username
+                    user.save(update_fields=['username'])
+            except User.DoesNotExist:
+                # New user
+                name_parts = display_name.split() if display_name else []
+                first_name = name_parts[0] if name_parts else ''
+                last_name = ' '.join(name_parts[1:]) if len(name_parts) > 1 else ''
+
+                user = User.objects.create_user(
+                    username=apple_username,
+                    email=lookup_email,
+                    first_name=first_name,
+                    last_name=last_name,
+                    password=None,
+                )
+                created = True
+
         tokens = get_tokens_for_user(user)
-        logger.info(f'✅ Apple Sign In: {email} (created: {created})')
-        
+        logger.info(f'Apple Sign In: {user.email} (created: {created})')
+
         return Response({
             'message': 'Apple sign-in successful',
             'created': created,
             **tokens
         }, status=status.HTTP_200_OK)
-        
+
     except Exception as e:
-        logger.error(f'❌ Apple Sign In error: {str(e)}')
+        logger.error(f'Apple Sign In error: {str(e)}')
         return Response(
             {'error': 'Apple Sign In failed. Please try again.'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
 
 
 @api_view(['POST'])
@@ -269,15 +318,8 @@ def google_sign_in(request):
         first_name = name_parts[0] if name_parts else user_info.get('given_name', '')
         last_name = ' '.join(name_parts[1:]) if len(name_parts) > 1 else user_info.get('family_name', '')
         
-        # Get or create user
-        user, created = User.objects.get_or_create(
-            email=email,
-            defaults={
-                'username': email,
-                'first_name': first_name,
-                'last_name': last_name,
-            }
-        )
+        # Get or create user (with duplicate handling)
+        user, created = _get_or_create_user(email, first_name, last_name)
         
         tokens = get_tokens_for_user(user)
         logger.info(f'✅ Google Sign In: {email} (created: {created})')
@@ -343,15 +385,8 @@ def microsoft_sign_in(request):
         first_name = name_parts[0] if name_parts else user_info.get('givenName', '')
         last_name = ' '.join(name_parts[1:]) if len(name_parts) > 1 else user_info.get('surname', '')
         
-        # Get or create user
-        user, created = User.objects.get_or_create(
-            email=email,
-            defaults={
-                'username': email,
-                'first_name': first_name,
-                'last_name': last_name,
-            }
-        )
+        # Get or create user (with duplicate handling)
+        user, created = _get_or_create_user(email, first_name, last_name)
         
         tokens = get_tokens_for_user(user)
         logger.info(f'✅ Microsoft Sign In: {email} (created: {created})')
@@ -399,7 +434,7 @@ def refresh_token(request):
         )
 
 
-@api_view(['GET', 'PUT'])
+@api_view(['GET', 'PUT', 'DELETE'])
 @permission_classes([IsAuthenticated])
 def user_profile(request):
     """Get or update current user profile"""
@@ -510,22 +545,34 @@ def apple_web_callback(request):
         apple_sub = decoded.get('sub')
         
         if not email:
-            email = f'{apple_sub}@appleid.privaterelay.com'
+            email = f'apple_{apple_sub}@privaterelay.euphorie.com'
         
         # Get name from user data (first time only)
         name_data = apple_user.get('name', {})
         first_name = name_data.get('firstName', '')
         last_name = name_data.get('lastName', '')
         
-        # Get or create user
-        user, created = User.objects.get_or_create(
-            email=email,
-            defaults={
-                'username': email,
-                'first_name': first_name,
-                'last_name': last_name,
-            }
-        )
+        # Sub-based lookup (consistent with mobile)
+        apple_username = f'apple_{apple_sub}'
+        try:
+            user = User.objects.get(username=apple_username)
+            created = False
+        except User.DoesNotExist:
+            try:
+                user = User.objects.get(email=email)
+                created = False
+                if not user.username.startswith('apple_'):
+                    user.username = apple_username
+                    user.save(update_fields=['username'])
+            except User.DoesNotExist:
+                user = User.objects.create_user(
+                    username=apple_username,
+                    email=email,
+                    first_name=first_name,
+                    last_name=last_name,
+                    password=None,
+                )
+                created = True
         
         tokens = get_tokens_for_user(user)
         logger.info(f'✅ Apple Web Sign In: {email} (created: {created})')
