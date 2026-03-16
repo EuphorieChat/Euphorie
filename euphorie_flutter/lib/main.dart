@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -203,10 +204,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                   _socialBtn('Continue with Apple', Icons.apple, auth.isLoading ? null : () async {
                     try { await auth.signInWithApple(); } catch (e) { debugPrint('Apple: $e'); }
                   }),
-
-
-
-
                 const SizedBox(height: 8),
                 _socialBtn('Continue with Microsoft', Icons.window, auth.isLoading ? null : () async {
                   try { await auth.signInWithMicrosoft(); } catch (e) { debugPrint('Microsoft: $e'); }
