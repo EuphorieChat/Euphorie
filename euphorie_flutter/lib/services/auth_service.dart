@@ -14,6 +14,7 @@ class AuthService extends ChangeNotifier {
   // ============================================
   
   final GoogleSignIn _googleSignIn = GoogleSignIn(
+    serverClientId: '271690446038-a1c3v0vcc9qk6sdjn5jmgeir3n6256m8.apps.googleusercontent.com',
     clientId: defaultTargetPlatform == TargetPlatform.iOS 
         ? AuthConfig.googleClientIdIOS 
         : AuthConfig.googleClientIdAndroid,
