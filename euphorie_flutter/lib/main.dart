@@ -198,6 +198,11 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                 _socialBtn('Continue with Google', Icons.g_mobiledata, auth.isLoading ? null : () async {
                   try { await auth.signInWithGoogle(); } catch (e) { debugPrint('Google: $e'); }
                 }),
+                const SizedBox(height: 8),
+                if (defaultTargetPlatform == TargetPlatform.iOS)
+                  _socialBtn('Continue with Apple', Icons.apple, auth.isLoading ? null : () async {
+                    try { await auth.signInWithApple(); } catch (e) { debugPrint('Apple: $e'); }
+                  }),
 
 
 
