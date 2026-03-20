@@ -48,6 +48,7 @@ class _TerminalScreenState extends State<TerminalScreen> {
   int _histIdx = -1;
   bool _processing = false;
   bool _listening = false;
+  bool _menuOpen = false;
   WebSocketService? _ws;
   bool _speechOk = false;
   SpeechToText? _speech;
@@ -358,27 +359,12 @@ class _TerminalScreenState extends State<TerminalScreen> {
           child: const Text('EUPHORIE', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, letterSpacing: 4, color: Colors.white)),
         ),
         const Spacer(),
-        // Buy Credits
         GestureDetector(
-          onTap: _showPaywall,
+          onTap: () => setState(() => _menuOpen = !_menuOpen),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(6), border: Border.all(color: _accent.withOpacity(0.3))),
-            child: const Row(children: [
-              CircleAvatar(radius: 3, backgroundColor: _accent),
-              SizedBox(width: 6),
-              Text('Subscribe', style: TextStyle(fontSize: 10, color: _accent, letterSpacing: 0.3)),
-            ]),
-          ),
-        ),
-        const SizedBox(width: 8),
-        // Logout
-        GestureDetector(
-          onTap: _doLogout,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(borderRadius: BorderRadius.circular(6), border: Border.all(color: _border)),
-            child: const Text('Logout', style: TextStyle(fontSize: 10, color: _danger, letterSpacing: 0.3)),
+            child: Icon(_menuOpen ? Icons.close : Icons.menu, size: 18, color: _accent),
           ),
         ),
       ]),
@@ -517,27 +503,134 @@ class _TerminalScreenState extends State<TerminalScreen> {
   }
 
   Widget _quickBar() {
-    const cmds = ['morning', 'agents', 'research', 'status', 'help', 'subscribe', 'logout'];
+    // Now returns empty when menu is closed
+    if (!_menuOpen) return const SizedBox.shrink();
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: const BoxDecoration(color: _bgSurface, border: Border(top: BorderSide(color: _border, width: 0.5))),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(children: cmds.map((c) => Padding(
-          padding: const EdgeInsets.only(right: 8),
-          child: GestureDetector(
-            onTap: () => _run(c),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: c == 'logout' ? _danger.withOpacity(0.2) : c == 'subscribe' ? _accent.withOpacity(0.3) : _border),
-                color: const Color(0x04ffffff)),
-              child: Text(c, style: TextStyle(fontSize: 11,
-                color: c == 'logout' ? _danger : c == 'subscribe' ? _accent : _textDim, letterSpacing: 0.5)),
-            ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: const BoxDecoration(
+        color: _bgSurface,
+        border: Border(top: BorderSide(color: _border, width: 0.5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text('QUICK COMMANDS', style: TextStyle(fontSize: 9, color: _textMuted, fontWeight: FontWeight.w600, letterSpacing: 1.2)),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8, runSpacing: 8,
+            children: ['morning', 'agents', 'research', 'status', 'help'].map((c) =>
+              GestureDetector(
+                onTap: () { setState(() => _menuOpen = false); _run(c); },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(6), border: Border.all(color: _border), color: const Color(0x04ffffff)),
+                  child: Text(c, style: const TextStyle(fontSize: 11, color: _textDim, letterSpacing: 0.5)),
+                ),
+              ),
+            ).toList(),
           ),
-        )).toList()),
+          const SizedBox(height: 14),
+          const Text('ACCOUNT', style: TextStyle(fontSize: 9, color: _textMuted, fontWeight: FontWeight.w600, letterSpacing: 1.2)),
+          const SizedBox(height: 8),
+          _menuItem(Icons.star, 'Subscribe', _accent, _showPaywall),
+          const SizedBox(height: 6),
+          _menuItem(Icons.delete_forever, 'Delete Account', _danger, _showDeleteAccount),
+          const SizedBox(height: 6),
+          _menuItem(Icons.logout, 'Logout', _danger, _doLogout),
+        ],
+      ),
+    );
+  }
+
+  Widget _menuItem(IconData icon, String label, Color color, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: () { setState(() => _menuOpen = false); onTap(); },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: color.withOpacity(0.2)),
+          color: color.withOpacity(0.04),
+        ),
+        child: Row(children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 10),
+          Text(label, style: TextStyle(fontSize: 13, color: color, fontWeight: FontWeight.w500)),
+        ]),
+      ),
+    );
+  }
+
+  void _showDeleteAccount() {
+    final auth = Provider.of<AuthService>(context, listen: false);
+    final isEmailUser = auth.authProvider == 'email';
+    final passwordCtl = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDState) => AlertDialog(
+          backgroundColor: const Color(0xFF0a0e14),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Color(0xFF151b25))),
+          title: const Row(children: [
+            Icon(Icons.warning_amber_rounded, color: Color(0xFFEF4444), size: 24),
+            SizedBox(width: 10),
+            Text('Delete Account', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFFEF4444))),
+          ]),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'This will permanently delete your account and all associated data. This action cannot be undone.',
+                style: TextStyle(color: Color(0xFF4a5568), fontSize: 13),
+              ),
+              if (isEmailUser) ...[
+                const SizedBox(height: 14),
+                TextField(
+                  controller: passwordCtl,
+                  obscureText: true,
+                  style: const TextStyle(fontSize: 14, color: Color(0xFFe2e8f0)),
+                  cursorColor: _accent,
+                  decoration: InputDecoration(
+                    hintText: 'Enter password to confirm',
+                    hintStyle: const TextStyle(color: Color(0xFF2d3748), fontSize: 14),
+                    filled: true, fillColor: const Color(0xFF06080c),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF151b25))),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF151b25))),
+                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFEF4444), width: 1.5)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+                  ),
+                ),
+              ],
+              if (auth.errorMessage != null) ...[
+                const SizedBox(height: 10),
+                Text(auth.errorMessage ?? '', style: const TextStyle(color: Color(0xFFEF4444), fontSize: 12)),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel', style: TextStyle(color: Color(0xFF4a5568))),
+            ),
+            TextButton(
+              onPressed: auth.isLoading ? null : () async {
+                final success = await auth.deleteAccount(
+                  password: isEmailUser ? passwordCtl.text : null,
+                );
+                if (success && ctx.mounted) {
+                  Navigator.pop(ctx);
+                }
+                setDState(() {});
+              },
+              child: auth.isLoading
+                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFEF4444)))
+                : const Text('Delete', style: TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.w700)),
+            ),
+          ],
+        ),
       ),
     );
   }
