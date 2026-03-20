@@ -513,6 +513,30 @@ def user_profile(request):
             'display_name': user.get_full_name() or user.email.split('@')[0],
         }, status=status.HTTP_200_OK)
 
+    elif request.method == 'DELETE':
+        password = request.data.get('password')
+        
+        if user.has_usable_password():
+            if not password:
+                return Response(
+                    {'error': 'Password is required to delete your account'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            if not user.check_password(password):
+                return Response(
+                    {'error': 'Incorrect password'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        
+        email = user.email
+        user.delete()
+        logger.info(f'Account deleted: {email}')
+        
+        return Response({
+            'message': 'Account successfully deleted'
+        }, status=status.HTTP_200_OK)
+
+
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])

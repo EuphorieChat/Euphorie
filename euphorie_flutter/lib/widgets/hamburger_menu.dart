@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/app_state.dart';
 import '../services/voice_service.dart';
+import '../services/auth_service.dart';
 
 class HamburgerMenu extends StatelessWidget {
   const HamburgerMenu({super.key});
@@ -123,6 +124,13 @@ class HamburgerMenu extends StatelessWidget {
                                   'Help & Commands',
                                   'View all voice commands & tips',
                                   () => _showHelp(context),
+                                ),
+                                _buildMenuItem(
+                                  context,
+                                  Icons.delete_forever,
+                                  'Delete Account',
+                                  'Permanently delete your account',
+                                  () => _showDeleteConfirmation(context),
                                 ),
                                 _buildMenuItem(
                                   context,
@@ -389,6 +397,134 @@ class HamburgerMenu extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+
+  void _showDeleteConfirmation(BuildContext context) {
+    final appState = context.read<AppState>();
+    appState.toggleMenu();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        final authService = context.read<AuthService>();
+        final isEmailUser = authService.authProvider == 'email';
+        final passwordController = TextEditingController();
+
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Dialog(
+              backgroundColor: Colors.transparent,
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 400),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color(0xFF1E0A32),
+                      Color(0xFF0F0023),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: const Color(0xFFEF4444).withOpacity(0.5),
+                    width: 2,
+                  ),
+                ),
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.warning_amber_rounded, color: Color(0xFFEF4444), size: 48),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Delete Account',
+                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'This will permanently delete your account and all associated data. This action cannot be undone.',
+                      style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 14),
+                      textAlign: TextAlign.center,
+                    ),
+                    if (isEmailUser) ...[
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: passwordController,
+                        obscureText: true,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          hintText: 'Enter your password to confirm',
+                          hintStyle: TextStyle(color: Colors.white.withOpacity(0.4)),
+                          filled: true,
+                          fillColor: Colors.white.withOpacity(0.1),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                      ),
+                    ],
+                    if (authService.errorMessage != null) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        authService.errorMessage ?? '',
+                        style: const TextStyle(color: Color(0xFFEF4444), fontSize: 13),
+                      ),
+                    ],
+                    const SizedBox(height: 24),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white.withOpacity(0.1),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            child: const Text('Cancel', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: authService.isLoading
+                                ? null
+                                : () async {
+                                    final success = await authService.deleteAccount(
+                                      password: isEmailUser ? passwordController.text : null,
+                                    );
+                                    if (success && context.mounted) {
+                                      Navigator.pop(context);
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('Account deleted successfully')),
+                                      );
+                                    } else {
+                                      setState(() {});
+                                    }
+                                  },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFEF4444),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            child: authService.isLoading
+                                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                : const Text('Delete', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 

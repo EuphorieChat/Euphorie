@@ -551,6 +551,52 @@ class AuthService extends ChangeNotifier {
     }
   }
 
+
+  // ============================================
+  // DELETE ACCOUNT
+  // ============================================
+
+  Future<bool> deleteAccount({String? password}) async {
+    try {
+      _setLoading(true);
+      _setError(null);
+
+      final accessToken = _user?['accessToken'];
+      if (accessToken == null) {
+        _setError('Not authenticated');
+        return false;
+      }
+
+      final body = <String, dynamic>{};
+      if (password != null) body['password'] = password;
+
+      final response = await http.delete(
+        Uri.parse('${AuthConfig.backendUrl}/api/auth/profile/'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $accessToken',
+        },
+        body: jsonEncode(body),
+      );
+
+      if (response.statusCode == 200) {
+        debugPrint('Account deleted successfully');
+        await signOut();
+        return true;
+      } else {
+        final errorData = jsonDecode(response.body);
+        _setError(errorData['error'] ?? 'Failed to delete account');
+        return false;
+      }
+    } catch (e) {
+      debugPrint('Delete account error: $e');
+      _setError('Failed to delete account. Please try again.');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   // ============================================
   // USER PROFILE METHODS
   // ============================================
