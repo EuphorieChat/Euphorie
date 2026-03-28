@@ -93,3 +93,39 @@ class CreditPurchase(models.Model):
 
     def __str__(self):
         return f"{self.user.email} - {self.credits_added} credits ({self.status})"
+
+
+# ============================================================
+# Nexus — Procurement Intelligence Models
+# ============================================================
+
+class ProcurementRun(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='procurement_runs')
+    query = models.TextField()
+    category = models.CharField(max_length=200, blank=True)
+    budget_max = models.FloatField(null=True, blank=True)
+    seats = models.IntegerField(null=True, blank=True)
+    must_have_features = models.JSONField(default=list)
+    compliance_requirements = models.JSONField(default=list)
+    current_vendor = models.CharField(max_length=200, blank=True)
+    current_spend = models.FloatField(null=True, blank=True)
+    status = models.CharField(max_length=20, default='pending', choices=[
+        ('pending', 'Pending'), ('running', 'Running'),
+        ('completed', 'Completed'), ('failed', 'Failed'),
+    ])
+    clones_spawned = models.IntegerField(default=0)
+    best_pick = models.CharField(max_length=200, blank=True)
+    estimated_savings = models.FloatField(default=0)
+    summary = models.TextField(blank=True)
+    recommendations = models.JSONField(default=list)
+    intelligence = models.JSONField(default=dict)
+    processing_time_seconds = models.FloatField(default=0)
+    credits_used = models.IntegerField(default=1)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        app_label = 'backend'
+
+    def __str__(self):
+        return f"{self.user.email} - {self.category} ({self.status})"

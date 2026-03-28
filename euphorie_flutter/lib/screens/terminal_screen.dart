@@ -22,11 +22,7 @@ const _textData = Color(0xFFa0aec0);
 const _danger = Color(0xFFfb7185);
 
 const _agentColors = {
-  'ATLAS': Color(0xFFa78bfa),
-  'CIPHER': Color(0xFF00b4ff),
-  'ORACLE': Color(0xFFff6b35),
-  'HERALD': Color(0xFF00e5a0),
-  'SENTINEL': Color(0xFFffd93d),
+  'NEXUS': Color(0xFF6ee7b7),
 };
 
 class TerminalScreen extends StatefulWidget {
@@ -137,7 +133,7 @@ class _TerminalScreenState extends State<TerminalScreen> {
         _inputFocus.requestFocus();
         break;
       case 'system': _add(_Line.system(m['text'] ?? '')); break;
-      case 'agent': _add(_Line.agent(m['text'] ?? '', m['agent'] ?? 'ATLAS')); break;
+      case 'agent': _add(_Line.agent(m['text'] ?? '', m['agent'] ?? 'NEXUS')); break;
       case 'data': _add(_Line.data(m['text'] ?? '')); break;
       case 'blank': _add(_Line.blank()); break;
       case 'turn_complete':

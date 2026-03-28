@@ -5,6 +5,7 @@ from django.contrib import admin
 from django.urls import path
 from . import views
 from . import auth_views
+from . import nexus_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -30,4 +31,10 @@ urlpatterns = [
     path('api/v1/webhooks/stripe/', views.stripe_webhook, name='stripe_webhook'),
     path('api/v1/history/', views.interaction_history, name='interaction_history'),
     path('api/v1/credits/deduct/', views.deduct_credit, name='deduct_credit'),
+
+    # Nexus — Procurement Intelligence
+    path('api/nexus/procure/', nexus_views.nexus_procure, name='nexus_procure'),
+    path('api/nexus/history/', nexus_views.nexus_history, name='nexus_history'),
+    path('api/nexus/runs/<int:run_id>/', nexus_views.nexus_run_detail, name='nexus_run_detail'),
+    path('api/nexus/intelligence/', nexus_views.nexus_intelligence_stats, name='nexus_intelligence'),
 ]

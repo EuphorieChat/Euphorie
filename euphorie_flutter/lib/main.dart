@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'screens/terminal_screen.dart';
+import 'screens/nexus_screen.dart';
 import 'services/app_state.dart';
 import 'services/auth_service.dart';
 
@@ -61,7 +62,7 @@ class AuthGate extends StatelessWidget {
     return Consumer<AuthService>(
       builder: (context, auth, _) {
         if (auth.isAuthenticated) {
-          return TerminalScreen(
+          return HomeScreen(
             userName: auth.getUserDisplayName(),
             userEmail: auth.getUserEmail(),
             token: auth.user?['accessToken'],
@@ -69,6 +70,55 @@ class AuthGate extends StatelessWidget {
         }
         return const LoginScreen();
       },
+    );
+  }
+}
+
+class HomeScreen extends StatefulWidget {
+  final String? userName;
+  final String? userEmail;
+  final String? token;
+  const HomeScreen({super.key, this.userName, this.userEmail, this.token});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  int _currentIndex = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final screens = [
+      NexusScreen(token: widget.token),
+      TerminalScreen(
+        userName: widget.userName,
+        userEmail: widget.userEmail,
+        token: widget.token,
+      ),
+    ];
+
+    return Scaffold(
+      body: IndexedStack(index: _currentIndex, children: screens),
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          border: Border(top: BorderSide(color: Color(0xFF1a2233))),
+        ),
+        child: BottomNavigationBar(
+          currentIndex: _currentIndex,
+          onTap: (i) => setState(() => _currentIndex = i),
+          backgroundColor: const Color(0xFF06080c),
+          selectedItemColor: const Color(0xFF6ee7b7),
+          unselectedItemColor: const Color(0xFF4a5568),
+          type: BottomNavigationBarType.fixed,
+          selectedFontSize: 11,
+          unselectedFontSize: 11,
+          items: const [
+            BottomNavigationBarItem(icon: Icon(Icons.search_rounded), label: 'Nexus'),
+            BottomNavigationBarItem(icon: Icon(Icons.terminal_rounded), label: 'Terminal'),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -144,7 +194,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                   child: const Text('EUPHORIE', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700, letterSpacing: 5, color: Colors.white)),
                 ),
                 const SizedBox(height: 4),
-                const Text('Agent Command Center', style: TextStyle(fontSize: 12, color: _textDim, letterSpacing: 1.5)),
+                const Text('AI Procurement Intelligence', style: TextStyle(fontSize: 12, color: _textDim, letterSpacing: 1.5)),
                 const SizedBox(height: 32),
 
                 // Error
